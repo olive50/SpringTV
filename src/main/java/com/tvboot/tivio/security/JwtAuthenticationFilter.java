@@ -14,7 +14,10 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -24,55 +27,79 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtils jwtUtils;
     private final UserDetailsService userDetailsService;
 
-//    @Override
-//    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
-//                                    FilterChain filterChain) throws ServletException, IOException {
-//        try {
-//            String jwt = parseJwt(request);
-//            if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-//                String username = jwtUtils.getUserNameFromJwtToken(jwt);
-//
-//                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-//                if (jwtUtils.validateJwtToken(jwt, userDetails)) {
-//                    UsernamePasswordAuthenticationToken authentication =
-//                            new UsernamePasswordAuthenticationToken(
-//                                    userDetails, null, userDetails.getAuthorities());
-//                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-//
-//                    SecurityContextHolder.getContext().setAuthentication(authentication);
-//                }
-//            }
-//        } catch (Exception e) {
-//            log.error("Cannot set user authentication: {}", e.getMessage());
-//        }
-//
-//        filterChain.doFilter(request, response);
-//    }
+    // Define public endpoints that should skip JWT processing
+    private static final List<String> PUBLIC_ENDPOINTS = Arrays.asList(
+            "/api/auth/login",
+            "/api/public/",
+            "/api/test/public",
+            "/api/test/health",
+            "api/test/info",
+            "/h2-console/",
+            "/error",
+            "/swagger-ui/",
+            "/v3/api-docs/",
+            "/swagger-resources/"
+
+    );
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        boolean shouldSkip = PUBLIC_ENDPOINTS.stream()
+                .anyMatch(publicPath -> path.startsWith(publicPath));
+
+        if (shouldSkip) {
+            log.debug("Skipping JWT filter for public endpoint: {}", path);
+        } else {
+            log.debug("Processing JWT filter for endpoint: {}", path);
+        }
+
+        return shouldSkip;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
+
+        String path = request.getRequestURI();
+        log.debug("JWT Filter processing request to: {}", path);
+
         try {
             String jwt = parseJwt(request);
-            log.debug("JWT Token: {}", jwt != null ? "Present" : "Missing");
 
-            if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-                String username = jwtUtils.getUserNameFromJwtToken(jwt);
-                log.debug("JWT Username: {}", username);
+            if (jwt != null) {
+                log.debug("JWT token found in request to: {}", path);
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                log.debug("UserDetails loaded: {}", userDetails.getUsername());
+                if (jwtUtils.validateJwtToken(jwt)) {
+                    String username = jwtUtils.getUserNameFromJwtToken(jwt);
+                    log.debug("Valid JWT found for user: {} accessing: {}", username, path);
 
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.debug("Authentication set in SecurityContext");
+                    // Double validation with user details
+                    if (jwtUtils.validateJwtToken(jwt, userDetails)) {
+                        UsernamePasswordAuthenticationToken authentication =
+                                new UsernamePasswordAuthenticationToken(
+                                        userDetails,
+                                        null,
+                                        userDetails.getAuthorities());
+                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                        log.debug("Authentication set for user: {} with authorities: {}",
+                                username, userDetails.getAuthorities());
+                    } else {
+                        log.warn("JWT token validation with user details failed for user: {}", username);
+                    }
+                } else {
+                    log.warn("Invalid JWT token for request to: {}", path);
+                }
+            } else {
+                log.debug("No JWT token found in request to: {}", path);
             }
         } catch (Exception e) {
-            log.error("Cannot set user authentication: {}", e.getMessage());
+            log.error("Cannot set user authentication for path {}: {}", path, e.getMessage());
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);
