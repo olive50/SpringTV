@@ -151,7 +151,7 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 // For H2 console in development
-                .headers(headers -> headers.frameOptions().disable())
+                //.headers(headers -> headers.frameOptions().disable())
                 .build();
     }
 }

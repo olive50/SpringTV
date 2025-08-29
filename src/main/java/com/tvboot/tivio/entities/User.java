@@ -102,6 +102,6 @@ public class User implements UserDetails {
     }
 
     public enum Role {
-        ADMIN, MANAGER, RECEPTIONIST, TECHNICIAN
+        ADMIN, MANAGER, RECEPTIONIST, TECHNICIAN,HOUSEKEEPER,TERMINAL,GUEST
     }
 }
