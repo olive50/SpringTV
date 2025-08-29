@@ -2,6 +2,9 @@ package com.tvboot.tivio.controller;
 
 import com.tvboot.tivio.dto.*;
 import com.tvboot.tivio.service.TvChannelService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -13,20 +16,30 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
+@Tag(name = "Chaînes TV", description = "Gestion des chaînes de télévision")
 @RestController
 @RequestMapping("/api/channels")
 @CrossOrigin(origins = "http://localhost:4200")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "Bearer Authentication")
 public class TvChannelController {
 
     private final TvChannelService tvChannelService;
 
+    @Operation(
+            summary = "Liste des chaînes",
+            description = "Récupère toutes les chaînes TV avec leurs catégories et langues"
+    )
     @GetMapping
     public ResponseEntity<List<TvChannelDTO>> getAllChannels() {
         List<TvChannelDTO> channels = tvChannelService.getAllChannels();
         return ResponseEntity.ok(channels);
     }
 
+    @Operation(
+            summary = "Chaînes paginées",
+            description = "Récupère les chaînes TV avec pagination et tri"
+    )
     @GetMapping("/paged")
     public ResponseEntity<Page<TvChannelDTO>> getAllChannelsPaged(
             @RequestParam(defaultValue = "0") int page,

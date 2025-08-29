@@ -44,9 +44,14 @@ public class SecurityConfig {
             "/api/test/debug-users", // Temporary debug endpoint
             "/h2-console/**",
             "/error",
+
+            // Swagger/OpenAPI endpoints
             "/swagger-ui/**",
+            "/swagger-ui.html",
             "/v3/api-docs/**",
-            "/swagger-resources/**"
+            "/v3/api-docs.yaml",
+            "/swagger-resources/**",
+            "/webjars/**"
     };
 
     // Admin-only endpoints
