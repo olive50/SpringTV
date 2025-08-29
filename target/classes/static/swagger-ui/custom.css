@@ -1,0 +1,12 @@
+/* Personnalisation TVBOOT */
+.swagger-ui .topbar {
+    background-color: #1f4e79;
+}
+
+.swagger-ui .topbar .download-url-wrapper {
+    display: none;
+}
+
+.swagger-ui .info .title {
+    color: #1f4e79;
+}
