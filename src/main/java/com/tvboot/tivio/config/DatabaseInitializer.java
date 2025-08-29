@@ -6,11 +6,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.DependsOn;
-import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
@@ -35,7 +35,6 @@ public class DatabaseInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
 
     @Override
-    @Transactional
     public void run(String... args) throws Exception {
         log.info("=== Starting Database Initialization ===");
 
@@ -44,23 +43,25 @@ public class DatabaseInitializer implements CommandLineRunner {
             verifyDatabaseConnection();
 
             // Step 2: Initialize core data (users, languages, categories)
-            initializeCoreData();
+            // Use separate transactions to avoid long-running transactions
+            initializeCoreDataSafely();
 
             // Step 3: Initialize business data (channels, rooms)
-            initializeBusinessData();
+            initializeBusinessDataSafely();
 
             log.info("=== Database Initialization Completed Successfully ===");
 
         } catch (Exception e) {
             log.error("=== Database Initialization Failed ===", e);
-            // Don't rethrow - let application start but log the issue
-            // In production, you might want to fail fast
+            // Don't rethrow in development - let application start
+            if (isProductionProfile()) {
+                throw e;
+            }
         }
     }
 
     /**
-     * STEP 1: Verify database connection
-     * WHY: Ensures database is accessible before trying to initialize data
+     * STEP 1: Verify database connection without transaction
      */
     private void verifyDatabaseConnection() throws SQLException {
         log.info("Verifying database connection...");
@@ -72,6 +73,7 @@ public class DatabaseInitializer implements CommandLineRunner {
                 log.info("Database Product: {} {}",
                         connection.getMetaData().getDatabaseProductName(),
                         connection.getMetaData().getDatabaseProductVersion());
+                log.info("Auto-commit mode: {}", connection.getAutoCommit());
             } else {
                 throw new SQLException("Database connection is not valid");
             }
@@ -82,29 +84,28 @@ public class DatabaseInitializer implements CommandLineRunner {
     }
 
     /**
-     * STEP 2: Initialize core data (Users, Languages, Categories)
-     * WHY: These are foundation entities that other entities depend on
+     * STEP 2: Initialize core data with separate transactions
      */
-    private void initializeCoreData() {
-        log.info("Initializing core data...");
+    private void initializeCoreDataSafely() {
+        log.info("Initializing core data with safe transactions...");
 
-        // Initialize users first
-        initializeUsers();
-
-        // Initialize languages
-        initializeLanguages();
-
-        // Initialize categories
-        initializeCategories();
-
-        log.info("✅ Core data initialization completed");
+        try {
+            initializeUsersWithTransaction();
+            initializeLanguagesWithTransaction();
+            initializeCategoriesWithTransaction();
+            log.info("✅ Core data initialization completed");
+        } catch (Exception e) {
+            log.error("Error in core data initialization: {}", e.getMessage(), e);
+            throw new RuntimeException("Core data initialization failed", e);
+        }
     }
 
     /**
-     * Initialize default users with proper error handling
+     * Initialize users with proper transaction management
      */
-    private void initializeUsers() {
-        log.info("Initializing users...");
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void initializeUsersWithTransaction() {
+        log.info("Initializing users in separate transaction...");
 
         try {
             long userCount = userRepository.count();
@@ -118,9 +119,240 @@ public class DatabaseInitializer implements CommandLineRunner {
                 verifyAdminUser();
             }
 
+            log.info("✅ Users initialization completed successfully");
+
         } catch (Exception e) {
             log.error("Error initializing users: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to initialize users", e);
+        }
+    }
+
+    /**
+     * Initialize languages with proper transaction management
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void initializeLanguagesWithTransaction() {
+        log.info("Initializing languages in separate transaction...");
+
+        try {
+            if (languageRepository.count() == 0) {
+                log.info("Creating default languages...");
+
+                List<Language> languages = List.of(
+                        Language.builder().name("English").code("EN").build(),
+                        Language.builder().name("French").code("FR").build(),
+                        Language.builder().name("Arabic").code("AR").build(),
+                        Language.builder().name("Spanish").code("ES").build(),
+                        Language.builder().name("German").code("DE").build()
+                );
+
+                List<Language> savedLanguages = languageRepository.saveAll(languages);
+                log.info("✅ Created {} languages", savedLanguages.size());
+            } else {
+                log.info("Languages already initialized ({})", languageRepository.count());
+            }
+        } catch (Exception e) {
+            log.error("Error initializing languages: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to initialize languages", e);
+        }
+    }
+
+    /**
+     * Initialize categories with proper transaction management
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void initializeCategoriesWithTransaction() {
+        log.info("Initializing categories in separate transaction...");
+
+        try {
+            if (categoryRepository.count() == 0) {
+                log.info("Creating default categories...");
+
+                List<TvChannelCategory> categories = List.of(
+                        TvChannelCategory.builder()
+                                .name("News")
+                                .description("News and current affairs channels")
+                                .iconUrl("fas fa-newspaper")
+                                .build(),
+                        TvChannelCategory.builder()
+                                .name("Sports")
+                                .description("Sports and athletics channels")
+                                .iconUrl("fas fa-football-ball")
+                                .build(),
+                        TvChannelCategory.builder()
+                                .name("Entertainment")
+                                .description("Movies and entertainment channels")
+                                .iconUrl("fas fa-film")
+                                .build(),
+                        TvChannelCategory.builder()
+                                .name("Kids")
+                                .description("Children and family channels")
+                                .iconUrl("fas fa-child")
+                                .build(),
+                        TvChannelCategory.builder()
+                                .name("Documentary")
+                                .description("Documentary and educational channels")
+                                .iconUrl("fas fa-graduation-cap")
+                                .build()
+                );
+
+                List<TvChannelCategory> savedCategories = categoryRepository.saveAll(categories);
+                log.info("✅ Created {} categories", savedCategories.size());
+            } else {
+                log.info("Categories already initialized ({})", categoryRepository.count());
+            }
+        } catch (Exception e) {
+            log.error("Error initializing categories: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to initialize categories", e);
+        }
+    }
+
+    /**
+     * STEP 3: Initialize business data with safe transactions
+     */
+    private void initializeBusinessDataSafely() {
+        log.info("Initializing business data with safe transactions...");
+
+        try {
+            initializeSampleChannelsWithTransaction();
+            initializeSampleRoomsWithTransaction();
+            log.info("✅ Business data initialization completed");
+        } catch (Exception e) {
+            log.error("Error in business data initialization: {}", e.getMessage(), e);
+            // Don't fail the application for sample data issues
+            log.warn("⚠️ Business data initialization failed, but continuing...");
+        }
+    }
+
+    /**
+     * Initialize sample channels with proper transaction management
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void initializeSampleChannelsWithTransaction() {
+        // Only create sample data in development
+        if (isProductionProfile()) {
+            log.info("Skipping sample channels in production profile");
+            return;
+        }
+
+        log.info("Initializing sample channels in separate transaction...");
+
+        try {
+            if (channelRepository.count() == 0) {
+                log.info("Creating sample TV channels...");
+
+                // Get references to languages and categories
+                Language english = languageRepository.findByCode("EN")
+                        .orElseThrow(() -> new RuntimeException("English language not found"));
+                Language arabic = languageRepository.findByCode("AR")
+                        .orElseThrow(() -> new RuntimeException("Arabic language not found"));
+
+                TvChannelCategory news = categoryRepository.findByName("News")
+                        .orElseThrow(() -> new RuntimeException("News category not found"));
+                TvChannelCategory sports = categoryRepository.findByName("Sports")
+                        .orElseThrow(() -> new RuntimeException("Sports category not found"));
+                TvChannelCategory entertainment = categoryRepository.findByName("Entertainment")
+                        .orElseThrow(() -> new RuntimeException("Entertainment category not found"));
+
+                List<TvChannel> channels = List.of(
+                        TvChannel.builder()
+                                .channelNumber(101)
+                                .name("CNN International")
+                                .description("International news channel")
+                                .ip("192.168.1.100")
+                                .port(8001)
+                                .category(news)
+                                .language(english)
+                                .build(),
+                        TvChannel.builder()
+                                .channelNumber(102)
+                                .name("BBC World News")
+                                .description("British news channel")
+                                .ip("192.168.1.100")
+                                .port(8002)
+                                .category(news)
+                                .language(english)
+                                .build(),
+                        TvChannel.builder()
+                                .channelNumber(201)
+                                .name("ESPN")
+                                .description("Sports entertainment channel")
+                                .ip("192.168.1.101")
+                                .port(8001)
+                                .category(sports)
+                                .language(english)
+                                .build()
+                );
+
+                List<TvChannel> savedChannels = channelRepository.saveAll(channels);
+                log.info("✅ Created {} sample channels", savedChannels.size());
+            } else {
+                log.info("TV channels already exist ({})", channelRepository.count());
+            }
+        } catch (Exception e) {
+            log.error("Error initializing sample channels: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to initialize sample channels", e);
+        }
+    }
+
+    /**
+     * Initialize sample rooms with proper transaction management
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void initializeSampleRoomsWithTransaction() {
+        // Only create sample data in development
+        if (isProductionProfile()) {
+            log.info("Skipping sample rooms in production profile");
+            return;
+        }
+
+        log.info("Initializing sample rooms in separate transaction...");
+
+        try {
+            if (roomRepository.count() == 0) {
+                log.info("Creating sample rooms...");
+
+                List<Room> rooms = List.of(
+                        Room.builder()
+                                .roomNumber("101")
+                                .roomType(Room.RoomType.STANDARD)
+                                .floorNumber(1)
+                                .building("Main Building")
+                                .maxOccupancy(2)
+                                .pricePerNight(new BigDecimal("89.99"))
+                                .status(Room.RoomStatus.AVAILABLE)
+                                .description("Standard room with city view")
+                                .build(),
+                        Room.builder()
+                                .roomNumber("201")
+                                .roomType(Room.RoomType.DELUXE)
+                                .floorNumber(2)
+                                .building("Main Building")
+                                .maxOccupancy(3)
+                                .pricePerNight(new BigDecimal("129.99"))
+                                .status(Room.RoomStatus.AVAILABLE)
+                                .description("Deluxe room with balcony")
+                                .build(),
+                        Room.builder()
+                                .roomNumber("301")
+                                .roomType(Room.RoomType.SUITE)
+                                .floorNumber(3)
+                                .building("Main Building")
+                                .maxOccupancy(4)
+                                .pricePerNight(new BigDecimal("199.99"))
+                                .status(Room.RoomStatus.AVAILABLE)
+                                .description("Executive suite with living room")
+                                .build()
+                );
+
+                List<Room> savedRooms = roomRepository.saveAll(rooms);
+                log.info("✅ Created {} sample rooms", savedRooms.size());
+            } else {
+                log.info("Rooms already exist ({})", roomRepository.count());
+            }
+        } catch (Exception e) {
+            log.error("Error initializing sample rooms: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to initialize sample rooms", e);
         }
     }
 
@@ -155,7 +387,7 @@ public class DatabaseInitializer implements CommandLineRunner {
     }
 
     /**
-     * Helper method to create a user
+     * Helper method to create a user with encoded password
      */
     private User createUser(String username, String email, String password,
                             String firstName, String lastName, User.Role role) {
@@ -198,192 +430,9 @@ public class DatabaseInitializer implements CommandLineRunner {
     }
 
     /**
-     * Initialize languages
+     * Check if we're running in production profile
      */
-    private void initializeLanguages() {
-        if (languageRepository.count() == 0) {
-            log.info("Initializing languages...");
-
-            List<Language> languages = List.of(
-                    Language.builder().name("English").code("EN").build(),
-                    Language.builder().name("French").code("FR").build(),
-                    Language.builder().name("Arabic").code("AR").build(),
-                    Language.builder().name("Spanish").code("ES").build(),
-                    Language.builder().name("German").code("DE").build()
-            );
-
-            languageRepository.saveAll(languages);
-            log.info("✅ Created {} languages", languages.size());
-        } else {
-            log.info("Languages already initialized ({})", languageRepository.count());
-        }
-    }
-
-    /**
-     * Initialize TV channel categories
-     */
-    private void initializeCategories() {
-        if (categoryRepository.count() == 0) {
-            log.info("Initializing TV channel categories...");
-
-            List<TvChannelCategory> categories = List.of(
-                    TvChannelCategory.builder()
-                            .name("News")
-                            .description("News and current affairs channels")
-                            .iconUrl("fas fa-newspaper")
-                            .build(),
-                    TvChannelCategory.builder()
-                            .name("Sports")
-                            .description("Sports and athletics channels")
-                            .iconUrl("fas fa-football-ball")
-                            .build(),
-                    TvChannelCategory.builder()
-                            .name("Entertainment")
-                            .description("Movies and entertainment channels")
-                            .iconUrl("fas fa-film")
-                            .build(),
-                    TvChannelCategory.builder()
-                            .name("Kids")
-                            .description("Children and family channels")
-                            .iconUrl("fas fa-child")
-                            .build(),
-                    TvChannelCategory.builder()
-                            .name("Documentary")
-                            .description("Documentary and educational channels")
-                            .iconUrl("fas fa-graduation-cap")
-                            .build()
-            );
-
-            categoryRepository.saveAll(categories);
-            log.info("✅ Created {} categories", categories.size());
-        } else {
-            log.info("Categories already initialized ({})", categoryRepository.count());
-        }
-    }
-
-    /**
-     * STEP 3: Initialize business data
-     * WHY: These depend on core data being present
-     */
-    private void initializeBusinessData() {
-        log.info("Initializing business data...");
-
-        try {
-            // Initialize sample channels
-            initializeSampleChannels();
-
-            // Initialize sample rooms
-            initializeSampleRooms();
-
-            log.info("✅ Business data initialization completed");
-
-        } catch (Exception e) {
-            log.error("Error initializing business data: {}", e.getMessage(), e);
-            // Don't fail the application, just log the error
-        }
-    }
-
-    /**
-     * Initialize sample TV channels
-     */
-    @Profile("!prod") // Only in non-production environments
-    private void initializeSampleChannels() {
-        if (channelRepository.count() == 0) {
-            log.info("Initializing sample TV channels...");
-
-            // Get references to languages and categories
-            Language english = languageRepository.findByCode("EN").orElse(null);
-            Language arabic = languageRepository.findByCode("AR").orElse(null);
-            TvChannelCategory news = categoryRepository.findByName("News").orElse(null);
-            TvChannelCategory sports = categoryRepository.findByName("Sports").orElse(null);
-            TvChannelCategory entertainment = categoryRepository.findByName("Entertainment").orElse(null);
-
-            if (english != null && news != null) {
-                List<TvChannel> channels = List.of(
-                        TvChannel.builder()
-                                .channelNumber(101)
-                                .name("CNN International")
-                                .description("International news channel")
-                                .ip("192.168.1.100")
-                                .port(8001)
-                                .category(news)
-                                .language(english)
-                                .build(),
-                        TvChannel.builder()
-                                .channelNumber(102)
-                                .name("BBC World News")
-                                .description("British news channel")
-                                .ip("192.168.1.100")
-                                .port(8002)
-                                .category(news)
-                                .language(english)
-                                .build(),
-                        TvChannel.builder()
-                                .channelNumber(201)
-                                .name("ESPN")
-                                .description("Sports entertainment channel")
-                                .ip("192.168.1.101")
-                                .port(8001)
-                                .category(sports)
-                                .language(english)
-                                .build()
-                );
-
-                channelRepository.saveAll(channels);
-                log.info("✅ Created {} sample channels", channels.size());
-            } else {
-                log.warn("⚠️ Cannot create sample channels - missing dependencies");
-            }
-        } else {
-            log.info("TV channels already exist ({})", channelRepository.count());
-        }
-    }
-
-    /**
-     * Initialize sample rooms
-     */
-    @Profile("!prod") // Only in non-production environments
-    private void initializeSampleRooms() {
-        if (roomRepository.count() == 0) {
-            log.info("Initializing sample rooms...");
-
-            List<Room> rooms = List.of(
-                    Room.builder()
-                            .roomNumber("101")
-                            .roomType(Room.RoomType.STANDARD)
-                            .floorNumber(1)
-                            .building("Main Building")
-                            .maxOccupancy(2)
-                            .pricePerNight(new BigDecimal("89.99"))
-                            .status(Room.RoomStatus.AVAILABLE)
-                            .description("Standard room with city view")
-                            .build(),
-                    Room.builder()
-                            .roomNumber("201")
-                            .roomType(Room.RoomType.DELUXE)
-                            .floorNumber(2)
-                            .building("Main Building")
-                            .maxOccupancy(3)
-                            .pricePerNight(new BigDecimal("129.99"))
-                            .status(Room.RoomStatus.AVAILABLE)
-                            .description("Deluxe room with balcony")
-                            .build(),
-                    Room.builder()
-                            .roomNumber("301")
-                            .roomType(Room.RoomType.SUITE)
-                            .floorNumber(3)
-                            .building("Main Building")
-                            .maxOccupancy(4)
-                            .pricePerNight(new BigDecimal("199.99"))
-                            .status(Room.RoomStatus.AVAILABLE)
-                            .description("Executive suite with living room")
-                            .build()
-            );
-
-            roomRepository.saveAll(rooms);
-            log.info("✅ Created {} sample rooms", rooms.size());
-        } else {
-            log.info("Rooms already exist ({})", roomRepository.count());
-        }
+    private boolean isProductionProfile() {
+        return System.getProperty("spring.profiles.active", "").contains("prod");
     }
 }

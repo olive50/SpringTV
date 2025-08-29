@@ -1,157 +1,303 @@
-CREATE DATABASE IF NOT EXISTS iptv_platform_dev;
-USE tivio_db;
+-- ===================================================================
+-- TVBOOT IPTV Platform - Initial Database Schema Migration
+-- Version: V1__Initial_Schema.sql
+-- Target: MySQL 8.0+
+-- Description: Creates all initial tables for the Hotel IPTV Management System
+-- Charset: utf8mb4 with utf8mb4_unicode_ci collation for full Unicode support
+-- ===================================================================
 
-CREATE TABLE IF NOT EXISTS users (
-                                     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                     username VARCHAR(255) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE,
-    first_name VARCHAR(255),
-    last_name VARCHAR(255),
-    role ENUM('ADMIN', 'USER', 'CONTENT_MANAGER') DEFAULT 'USER',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE,
-    profile_picture VARCHAR(512),
-    date_of_birth DATE,
-    phone_number VARCHAR(20),
-    subscription_type ENUM('FREE', 'BASIC', 'PREMIUM') DEFAULT 'FREE',
-    subscription_expiry DATE
-    );
+-- Set MySQL 8 specific settings
+SET sql_mode = 'STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO';
 
-CREATE TABLE IF NOT EXISTS channels (
-                                        id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                        name VARCHAR(255) NOT NULL,
-    description TEXT,
-    logo_url VARCHAR(512),
-    stream_url VARCHAR(512) NOT NULL,
-    category VARCHAR(255),
-    language VARCHAR(100),
-    country VARCHAR(100),
-    is_hd BOOLEAN DEFAULT FALSE,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    );
+-- ===================================================================
+-- CORE AUTHENTICATION & USER MANAGEMENT
+-- ===================================================================
 
-CREATE TABLE IF NOT EXISTS categories (
-                                          id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                          name VARCHAR(255) NOT NULL UNIQUE,
-    description TEXT,
-    parent_category_id BIGINT,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (parent_category_id) REFERENCES categories(id) ON DELETE SET NULL
-    );
+CREATE TABLE users (
+                       id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                       username VARCHAR(50) NOT NULL UNIQUE,
+                       email VARCHAR(100) NOT NULL UNIQUE,
+                       password VARCHAR(255) NOT NULL,
+                       first_name VARCHAR(50) NOT NULL,
+                       last_name VARCHAR(50) NOT NULL,
+                       role ENUM('ADMIN', 'MANAGER', 'RECEPTIONIST', 'TECHNICIAN', 'HOUSEKEEPER', 'TERMINAL', 'GUEST') NOT NULL,
+                       is_active BOOLEAN DEFAULT TRUE,
+                       last_login DATETIME(6),
+                       created_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6),
+                       updated_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
 
-CREATE TABLE IF NOT EXISTS channel_categories (
-                                                  channel_id BIGINT NOT NULL,
-                                                  category_id BIGINT NOT NULL,
-                                                  PRIMARY KEY (channel_id, category_id),
-    FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
-    );
+                       INDEX idx_users_username (username),
+                       INDEX idx_users_email (email),
+                       INDEX idx_users_role (role),
+                       INDEX idx_users_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS user_favorites (
-                                              id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                              user_id BIGINT NOT NULL,
+-- ===================================================================
+-- IPTV CONTENT MANAGEMENT
+-- ===================================================================
+
+CREATE TABLE languages (
+                           id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                           name VARCHAR(100) NOT NULL UNIQUE,
+                           code VARCHAR(3) NOT NULL UNIQUE,
+
+                           INDEX idx_languages_code (code),
+                           INDEX idx_languages_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE tv_channel_categories (
+                                       id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                                       name VARCHAR(100) NOT NULL UNIQUE,
+                                       description TEXT,
+                                       icon_url VARCHAR(500),
+
+                                       INDEX idx_categories_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE tv_channels (
+                             id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                             channel_number INT NOT NULL UNIQUE,
+                             name VARCHAR(100) NOT NULL,
+                             description TEXT,
+                             ip VARCHAR(45) NOT NULL,
+                             port INT NOT NULL,
+                             logo VARCHAR(500),
+                             category_id BIGINT,
+                             language_id BIGINT,
+
+                             CONSTRAINT fk_channels_category FOREIGN KEY (category_id) REFERENCES tv_channel_categories(id) ON DELETE SET NULL ON UPDATE CASCADE,
+                             CONSTRAINT fk_channels_language FOREIGN KEY (language_id) REFERENCES languages(id) ON DELETE SET NULL ON UPDATE CASCADE,
+
+                             UNIQUE KEY unique_ip_port (ip, port),
+                             INDEX idx_channels_number (channel_number),
+                             INDEX idx_channels_category (category_id),
+                             INDEX idx_channels_language (language_id),
+                             INDEX idx_channels_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE epg_entries (
+                             id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                             channel_id BIGINT NOT NULL,
+                             title VARCHAR(200) NOT NULL,
+                             description TEXT,
+                             start_time DATETIME(6) NOT NULL,
+                             end_time DATETIME(6) NOT NULL,
+                             genre VARCHAR(50),
+
+                             CONSTRAINT fk_epg_channel FOREIGN KEY (channel_id) REFERENCES tv_channels(id) ON DELETE CASCADE ON UPDATE CASCADE,
+
+                             INDEX idx_epg_channel_time (channel_id, start_time, end_time),
+                             INDEX idx_epg_time_range (start_time, end_time),
+                             INDEX idx_epg_channel (channel_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===================================================================
+-- CHANNEL PACKAGES & SUBSCRIPTIONS
+-- ===================================================================
+
+CREATE TABLE channel_packages (
+                                  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                                  name VARCHAR(100) NOT NULL UNIQUE,
+                                  description TEXT,
+                                  price DECIMAL(10,2) DEFAULT 0.00,
+                                  is_premium BOOLEAN DEFAULT FALSE,
+                                  is_active BOOLEAN DEFAULT TRUE,
+                                  created_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6),
+                                  updated_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+
+                                  INDEX idx_packages_active (is_active),
+                                  INDEX idx_packages_premium (is_premium),
+                                  INDEX idx_packages_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE package_channels (
+                                  package_id BIGINT NOT NULL,
+                                  channel_id BIGINT NOT NULL,
+
+                                  PRIMARY KEY (package_id, channel_id),
+                                  CONSTRAINT fk_package_channels_package FOREIGN KEY (package_id) REFERENCES channel_packages(id) ON DELETE CASCADE ON UPDATE CASCADE,
+                                  CONSTRAINT fk_package_channels_channel FOREIGN KEY (channel_id) REFERENCES tv_channels(id) ON DELETE CASCADE ON UPDATE CASCADE,
+
+                                  INDEX idx_package_channels_package (package_id),
+                                  INDEX idx_package_channels_channel (channel_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===================================================================
+-- HOTEL MANAGEMENT
+-- ===================================================================
+
+CREATE TABLE rooms (
+                       id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                       room_number VARCHAR(20) NOT NULL UNIQUE,
+                       room_type ENUM('STANDARD', 'DELUXE', 'SUITE', 'JUNIOR_SUITE', 'PRESIDENTIAL_SUITE', 'FAMILY_ROOM', 'SINGLE', 'DOUBLE', 'TWIN') NOT NULL,
+                       floor_number INT,
+                       building VARCHAR(50),
+                       max_occupancy INT DEFAULT 2,
+                       price_per_night DECIMAL(10,2) DEFAULT 0.00,
+                       status ENUM('AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'OUT_OF_ORDER', 'CLEANING') NOT NULL DEFAULT 'AVAILABLE',
+                       description TEXT,
+                       amenities JSON,
+                       channel_package_id BIGINT,
+                       created_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6),
+                       updated_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+
+                       CONSTRAINT fk_rooms_package FOREIGN KEY (channel_package_id) REFERENCES channel_packages(id) ON DELETE SET NULL ON UPDATE CASCADE,
+
+                       INDEX idx_rooms_number (room_number),
+                       INDEX idx_rooms_type (room_type),
+                       INDEX idx_rooms_status (status),
+                       INDEX idx_rooms_floor (floor_number),
+                       INDEX idx_rooms_building (building),
+                       INDEX idx_rooms_package (channel_package_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE guests (
+                        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                        guest_id VARCHAR(20) NOT NULL UNIQUE,
+                        first_name VARCHAR(50) NOT NULL,
+                        last_name VARCHAR(50) NOT NULL,
+                        email VARCHAR(100),
+                        phone VARCHAR(20),
+                        nationality VARCHAR(50),
+                        passport_number VARCHAR(20),
+                        id_card_number VARCHAR(20),
+                        date_of_birth DATE,
+                        gender ENUM('MALE', 'FEMALE', 'OTHER'),
+                        vip_status BOOLEAN DEFAULT FALSE,
+                        loyalty_level ENUM('BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND'),
+                        preferred_language VARCHAR(10),
+                        special_requests TEXT,
+                        notes TEXT,
+                        current_room_id BIGINT,
+                        created_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6),
+                        updated_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+
+                        CONSTRAINT fk_guests_room FOREIGN KEY (current_room_id) REFERENCES rooms(id) ON DELETE SET NULL ON UPDATE CASCADE,
+
+                        INDEX idx_guests_guest_id (guest_id),
+                        INDEX idx_guests_email (email),
+                        INDEX idx_guests_phone (phone),
+                        INDEX idx_guests_passport (passport_number),
+                        INDEX idx_guests_name (first_name, last_name),
+                        INDEX idx_guests_vip (vip_status),
+                        INDEX idx_guests_loyalty (loyalty_level),
+                        INDEX idx_guests_current_room (current_room_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE reservations (
+                              id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                              reservation_number VARCHAR(50) NOT NULL UNIQUE,
+                              guest_id BIGINT NOT NULL,
+                              room_id BIGINT NOT NULL,
+                              check_in_date DATETIME(6) NOT NULL,
+                              check_out_date DATETIME(6) NOT NULL,
+                              actual_check_in DATETIME(6),
+                              actual_check_out DATETIME(6),
+                              number_of_guests INT DEFAULT 1,
+                              total_amount DECIMAL(10,2) DEFAULT 0.00,
+                              status ENUM('CONFIRMED', 'CHECKED_IN', 'CHECKED_OUT', 'CANCELLED', 'NO_SHOW') NOT NULL DEFAULT 'CONFIRMED',
+                              booking_source VARCHAR(50),
+                              special_requests TEXT,
+                              notes TEXT,
+                              created_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6),
+                              updated_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+
+                              CONSTRAINT fk_reservations_guest FOREIGN KEY (guest_id) REFERENCES guests(id) ON DELETE CASCADE ON UPDATE CASCADE,
+                              CONSTRAINT fk_reservations_room FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+
+                              INDEX idx_reservations_number (reservation_number),
+                              INDEX idx_reservations_guest (guest_id),
+                              INDEX idx_reservations_room (room_id),
+                              INDEX idx_reservations_status (status),
+                              INDEX idx_reservations_check_in (check_in_date),
+                              INDEX idx_reservations_check_out (check_out_date),
+                              INDEX idx_reservations_dates (check_in_date, check_out_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===================================================================
+-- TERMINAL & DEVICE MANAGEMENT
+-- ===================================================================
+
+CREATE TABLE terminals (
+                           id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                           terminal_id VARCHAR(50) NOT NULL UNIQUE,
+                           device_type ENUM('SET_TOP_BOX', 'SMART_TV', 'DESKTOP_PC', 'TABLET', 'MOBILE', 'DISPLAY_SCREEN', 'PROJECTOR') NOT NULL,
+                           brand VARCHAR(50),
+                           model VARCHAR(100),
+                           mac_address VARCHAR(17) UNIQUE,
+                           ip_address VARCHAR(45),
+                           firmware_version VARCHAR(50),
+                           status ENUM('ACTIVE', 'INACTIVE', 'MAINTENANCE', 'OFFLINE', 'FAULTY') NOT NULL DEFAULT 'ACTIVE',
+                           location VARCHAR(100),
+                           serial_number VARCHAR(100) UNIQUE,
+                           purchase_date DATETIME(6),
+                           warranty_expiry DATETIME(6),
+                           last_seen DATETIME(6),
+                           notes TEXT,
+                           room_id BIGINT,
+                           created_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6),
+                           updated_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+
+                           CONSTRAINT fk_terminals_room FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE SET NULL ON UPDATE CASCADE,
+
+                           INDEX idx_terminals_terminal_id (terminal_id),
+                           INDEX idx_terminals_device_type (device_type),
+                           INDEX idx_terminals_status (status),
+                           INDEX idx_terminals_mac_address (mac_address),
+                           INDEX idx_terminals_serial (serial_number),
+                           INDEX idx_terminals_room (room_id),
+                           INDEX idx_terminals_last_seen (last_seen),
+                           INDEX idx_terminals_warranty (warranty_expiry)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE terminal_channel_assignments (
+                                              id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                                              terminal_id BIGINT NOT NULL,
                                               channel_id BIGINT NOT NULL,
-                                              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                              UNIQUE KEY unique_user_channel (user_id, channel_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE
-    );
+                                              position INT,
+                                              is_enabled BOOLEAN DEFAULT TRUE,
+                                              assigned_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6),
 
-CREATE TABLE IF NOT EXISTS user_preferences (
-                                                id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                                user_id BIGINT NOT NULL UNIQUE,
-                                                preferred_language VARCHAR(100),
-    preferred_categories JSON,
-    auto_play BOOLEAN DEFAULT TRUE,
-    quality_preference ENUM('LOW', 'MEDIUM', 'HIGH', 'AUTO') DEFAULT 'AUTO',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
+                                              CONSTRAINT fk_terminal_assignments_terminal FOREIGN KEY (terminal_id) REFERENCES terminals(id) ON DELETE CASCADE ON UPDATE CASCADE,
+                                              CONSTRAINT fk_terminal_assignments_channel FOREIGN KEY (channel_id) REFERENCES tv_channels(id) ON DELETE CASCADE ON UPDATE CASCADE,
 
-CREATE TABLE IF NOT EXISTS epg_programs (
-                                            id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                            channel_id BIGINT NOT NULL,
-                                            title VARCHAR(255) NOT NULL,
-    description TEXT,
-    start_time DATETIME NOT NULL,
-    end_time DATETIME NOT NULL,
-    genre VARCHAR(255),
-    season_number INT,
-    episode_number INT,
-    episode_title VARCHAR(255),
-    image_url VARCHAR(512),
-    rating VARCHAR(50),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
-    INDEX idx_channel_time (channel_id, start_time)
-    );
+                                              UNIQUE KEY unique_terminal_position (terminal_id, position),
+                                              INDEX idx_terminal_assignments_terminal (terminal_id),
+                                              INDEX idx_terminal_assignments_channel (channel_id),
+                                              INDEX idx_terminal_assignments_enabled (is_enabled)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS user_watch_history (
-                                                  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                                  user_id BIGINT NOT NULL,
-                                                  channel_id BIGINT NOT NULL,
-                                                  start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                                  end_time TIMESTAMP NULL,
-                                                  duration INT DEFAULT 0,
-                                                  program_id BIGINT NULL,
-                                                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                                  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
-    FOREIGN KEY (program_id) REFERENCES epg_programs(id) ON DELETE SET NULL,
-    INDEX idx_user_time (user_id, start_time)
-    );
+-- ===================================================================
+-- INITIAL DATA INSERTION
+-- ===================================================================
 
-CREATE TABLE IF NOT EXISTS advertisements (
-                                              id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                              title VARCHAR(255) NOT NULL,
-    content_url VARCHAR(512) NOT NULL,
-    duration INT NOT NULL,
-    target_criteria JSON,
-    is_active BOOLEAN DEFAULT TRUE,
-    start_date DATE,
-    end_date DATE,
-    max_impressions INT,
-    current_impressions INT DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    );
+-- Users (Password: admin123 - BCrypt)
+INSERT INTO users (username, email, password, first_name, last_name, role, is_active) VALUES
+                                                                                          ('admin', 'admin@tvboot.com', '$2a$10$xDBKoM67grR.QBlMrb6BOOS8z1MtHZfkjE6m3Vl2jXr.HXy7/7Y.O', 'System', 'Administrator', 'ADMIN', TRUE),
+                                                                                          ('manager', 'manager@tvboot.com', '$2a$10$xDBKoM67grR.QBlMrb6BOOS8z1MtHZfkjE6m3Vl2jXr.HXy7/7Y.O', 'Hotel', 'Manager', 'MANAGER', TRUE),
+                                                                                          ('receptionist', 'receptionist@tvboot.com', '$2a$10$xDBKoM67grR.QBlMrb6BOOS8z1MtHZfkjE6m3Vl2jXr.HXy7/7Y.O', 'Front', 'Desk', 'RECEPTIONIST', TRUE),
+                                                                                          ('technician', 'technician@tvboot.com', '$2a$10$xDBKoM67grR.QBlMrb6BOOS8z1MtHZfkjE6m3Vl2jXr.HXy7/7Y.O', 'IT', 'Technician', 'TECHNICIAN', TRUE);
 
-CREATE TABLE IF NOT EXISTS user_subscriptions (
-                                                  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                                  user_id BIGINT NOT NULL,
-                                                  type ENUM('FREE', 'BASIC', 'PREMIUM') NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    payment_status ENUM('PENDING', 'PAID', 'FAILED', 'REFUNDED') DEFAULT 'PENDING',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_user_subscription (user_id, is_active)
-    );
+-- Languages
+INSERT INTO languages (name, code) VALUES
+                                       ('English', 'EN'),
+                                       ('French', 'FR'),
+                                       ('Arabic', 'AR'),
+                                       ('Spanish', 'ES'),
+                                       ('German', 'DE');
 
-CREATE TABLE IF NOT EXISTS settings (
-                                        id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                                        setting_key VARCHAR(255) NOT NULL UNIQUE,
-    setting_value TEXT NOT NULL,
-    description TEXT,
-    is_public BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    );
+-- TV Channel Categories
+INSERT INTO tv_channel_categories (name, description, icon_url) VALUES
+                                                                    ('News', 'News and current affairs channels', 'fas fa-newspaper'),
+                                                                    ('Sports', 'Sports and athletics channels', 'fas fa-football-ball'),
+                                                                    ('Entertainment', 'Movies and entertainment channels', 'fas fa-film'),
+                                                                    ('Kids', 'Children and family channels', 'fas fa-child'),
+                                                                    ('Documentary', 'Documentary and educational channels', 'fas fa-graduation-cap'),
+                                                                    ('Music', 'Music and concert channels', 'fas fa-music'),
+                                                                    ('Lifestyle', 'Cooking, travel and lifestyle channels', 'fas fa-utensils');
 
--- Insert default settings
-INSERT INTO settings (setting_key, setting_value, description, is_public) VALUES
-                                                                              ('MAX_FAVORITES', '50', 'Maximum number of favorite channels per user', TRUE),
-                                                                              ('SESSION_TIMEOUT', '3600', 'User session timeout in seconds', FALSE),
-                                                                              ('DEFAULT_QUALITY', 'AUTO', 'Default stream quality', TRUE),
-                                                                              ('MAX_CONCURRENT_STREAMS', '3', 'Maximum concurrent streams per user', FALSE),
-                                                                              ('ADVERTISEMENT_FREQUENCY', '15', 'Advertisement frequency in minutes', TRUE)
-    ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP;
+-- TV Channels
+INSERT INTO tv_channels (channel_number, name, description, ip, port, category_id, language_id) VALUES
+                                                                                                    (101, 'CNN International', 'International news channel', '192.168.1.100', 8001, 1, 1),
+                                                                                                    (102, 'BBC World News', 'British international news channel', '192.168.1.101', 8002, 1, 1),
+                                                                                                    (103, 'Al Jazeera English', 'Qatari international news channel', '192.168.1.102', 8003, 1, 1);
