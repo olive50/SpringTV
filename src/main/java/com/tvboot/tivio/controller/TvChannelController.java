@@ -45,7 +45,7 @@ public class TvChannelController {
     @GetMapping("/{id}")
     public ResponseEntity<TvChannelDTO> getChannelById(@PathVariable Long id) {
         return tvChannelService.getChannelById(id)
-                .map(channel -> ResponseEntity.ok(channel))
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
