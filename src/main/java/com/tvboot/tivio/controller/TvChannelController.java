@@ -1,5 +1,6 @@
 package com.tvboot.tivio.controller;
 
+import com.tvboot.tivio.audit.Auditable;
 import com.tvboot.tivio.dto.*;
 import com.tvboot.tivio.service.TvChannelService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -7,6 +8,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +24,7 @@ import java.util.List;
 @CrossOrigin(origins = "http://localhost:4200")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "Bearer Authentication")
+@Slf4j
 public class TvChannelController {
 
     private final TvChannelService tvChannelService;
@@ -31,8 +34,11 @@ public class TvChannelController {
             description = "Récupère toutes les chaînes TV avec leurs catégories et langues"
     )
     @GetMapping
+    @Auditable(action = "LIST_CHANNELS", resource = "TV_CHANNEL")
     public ResponseEntity<List<TvChannelDTO>> getAllChannels() {
+        log.debug("Received request to get all TV channels");
         List<TvChannelDTO> channels = tvChannelService.getAllChannels();
+        log.debug("Returning {} TV channels", channels.size());
         return ResponseEntity.ok(channels);
     }
 
@@ -92,35 +98,55 @@ public class TvChannelController {
         return ResponseEntity.ok(channels);
     }
 
-    @PostMapping
+    @Auditable(action = "CREATE_CHANNEL", resource = "TV_CHANNEL", logParams = true, logResult = true)
     public ResponseEntity<TvChannelDTO> createChannel(@Valid @RequestBody TvChannelCreateDTO createDTO) {
+        log.info("Received request to create TV channel: {}", createDTO.getName());
+
         try {
             TvChannelDTO createdChannel = tvChannelService.createChannel(createDTO);
+            log.info("Successfully created TV channel with ID: {}", createdChannel.getId());
             return ResponseEntity.status(HttpStatus.CREATED).body(createdChannel);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+
+        } catch (Exception e) {
+            log.error("Failed to create TV channel: {}", createDTO.getName(), e);
+            throw e;
         }
     }
 
+    @Operation(summary = "Modifier une chaîne")
     @PutMapping("/{id}")
+    @Auditable(action = "UPDATE_CHANNEL", resource = "TV_CHANNEL", logParams = true)
     public ResponseEntity<TvChannelDTO> updateChannel(
             @PathVariable Long id,
             @Valid @RequestBody TvChannelUpdateDTO updateDTO) {
+
+        log.info("Received request to update TV channel with ID: {}", id);
+
         try {
             TvChannelDTO updatedChannel = tvChannelService.updateChannel(id, updateDTO);
+            log.info("Successfully updated TV channel: {}", updatedChannel.getName());
             return ResponseEntity.ok(updatedChannel);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+
+        } catch (Exception e) {
+            log.error("Failed to update TV channel with ID: {}", id, e);
+            throw e;
         }
     }
 
+    @Operation(summary = "Supprimer une chaîne")
     @DeleteMapping("/{id}")
+    @Auditable(action = "DELETE_CHANNEL", resource = "TV_CHANNEL")
     public ResponseEntity<Void> deleteChannel(@PathVariable Long id) {
+        log.info("Received request to delete TV channel with ID: {}", id);
+
         try {
             tvChannelService.deleteChannel(id);
+            log.info("Successfully deleted TV channel with ID: {}", id);
             return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+
+        } catch (Exception e) {
+            log.error("Failed to delete TV channel with ID: {}", id, e);
+            throw e;
         }
     }
 }
