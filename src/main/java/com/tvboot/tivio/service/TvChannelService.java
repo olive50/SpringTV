@@ -13,10 +13,18 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 @Service
 @RequiredArgsConstructor
@@ -434,5 +442,176 @@ public class TvChannelService {
                 .category(categoryDTO)
                 .language(languageDTO)
                 .build();
+    }
+
+    // Ajoutez cette méthode à votre TvChannelService existant
+
+    public TvChannelDTO createChannelWithLogo(TvChannelCreateDTO createDTO, MultipartFile logoFile) throws IOException {
+        log.info("Creating new TV channel with logo: {}", createDTO.getName());
+
+        try {
+            // Validation du fichier logo
+            validateLogoFile(logoFile);
+
+            // Validation standard de la chaîne
+            validateChannelNumber(createDTO.getChannelNumber(), null);
+            validateIpPortCombination(createDTO.getIp(), createDTO.getPort(), null);
+
+            // Récupérer les entités liées
+            TvChannelCategory category = categoryRepository.findById(createDTO.getCategoryId())
+                    .orElseThrow(() -> {
+                        log.warn("Category not found with ID: {}", createDTO.getCategoryId());
+                        return new ResourceNotFoundException("Category", createDTO.getCategoryId());
+                    });
+
+            Language language = languageRepository.findById(createDTO.getLanguageId())
+                    .orElseThrow(() -> {
+                        log.warn("Language not found with ID: {}", createDTO.getLanguageId());
+                        return new ResourceNotFoundException("Language", createDTO.getLanguageId());
+                    });
+
+            // Sauvegarder le logo et obtenir l'URL
+            String logoUrl = saveLogoFile(logoFile, createDTO.getName());
+            log.debug("Logo saved successfully: {}", logoUrl);
+
+            // Créer la chaîne avec l'URL du logo
+            TvChannel channel = TvChannel.builder()
+                    .channelNumber(createDTO.getChannelNumber())
+                    .name(createDTO.getName())
+                    .description(createDTO.getDescription())
+                    .ip(createDTO.getIp())
+                    .port(createDTO.getPort())
+                    .logoUrl(logoUrl)  // URL du logo sauvegardé
+                    .category(category)
+                    .language(language)
+                    .build();
+
+            TvChannel savedChannel = tvChannelRepository.save(channel);
+
+            log.info("Successfully created TV channel with logo: {} (ID: {}, Number: {}, Logo: {})",
+                    savedChannel.getName(), savedChannel.getId(), savedChannel.getChannelNumber(), logoUrl);
+
+            // Ajouter des métadonnées au contexte de logging
+            MDC.put("channelId", savedChannel.getId().toString());
+            MDC.put("channelNumber", String.valueOf(savedChannel.getChannelNumber()));
+            MDC.put("logoUrl", logoUrl);
+
+            return convertToDTO(savedChannel);
+
+        } catch (TvBootException e) {
+            throw e; // Re-lancer les exceptions métier
+        } catch (IOException e) {
+            log.error("I/O error while creating channel with logo: {}", createDTO.getName(), e);
+            throw e; // Re-lancer les erreurs I/O pour gestion par le contrôleur
+        } catch (Exception e) {
+            log.error("Unexpected error creating TV channel with logo: {}", createDTO.getName(), e);
+            throw new TvBootException("Failed to create TV channel with logo", "CREATE_CHANNEL_LOGO_ERROR",
+                    HttpStatus.INTERNAL_SERVER_ERROR, e);
+        }
+    }
+
+    /**
+     * Valide le fichier logo téléchargé
+     */
+    private void validateLogoFile(MultipartFile logoFile) {
+        if (logoFile == null || logoFile.isEmpty()) {
+            throw new ValidationException("Logo file is required and cannot be empty");
+        }
+
+        // Vérifier la taille du fichier (max 5MB)
+        long maxSize = 5 * 1024 * 1024; // 5MB en bytes
+        if (logoFile.getSize() > maxSize) {
+            log.warn("Logo file size exceeds maximum: {} bytes (max: {} bytes)",
+                    logoFile.getSize(), maxSize);
+            throw new ValidationException("Logo file size exceeds maximum allowed size of 5MB");
+        }
+
+        // Vérifier le type de fichier
+        String contentType = logoFile.getContentType();
+        if (contentType == null || !isValidImageType(contentType)) {
+            log.warn("Invalid logo file type: {}", contentType);
+            throw new IllegalArgumentException("Invalid file type. Only image files (PNG, JPG, JPEG, GIF) are allowed");
+        }
+
+        // Vérifier l'extension du fichier
+        String originalFilename = logoFile.getOriginalFilename();
+        if (originalFilename == null || !hasValidImageExtension(originalFilename)) {
+            log.warn("Invalid logo file extension: {}", originalFilename);
+            throw new IllegalArgumentException("Invalid file extension. Only .png, .jpg, .jpeg, .gif files are allowed");
+        }
+
+        log.debug("Logo file validation passed: {} ({})", originalFilename, contentType);
+    }
+
+    /**
+     * Vérifie si le type MIME est valide pour une image
+     */
+    private boolean isValidImageType(String contentType) {
+        return contentType.equals("image/png") ||
+                contentType.equals("image/jpeg") ||
+                contentType.equals("image/jpg") ||
+                contentType.equals("image/gif") ||
+                contentType.equals("image/webp");
+    }
+
+    /**
+     * Vérifie si l'extension du fichier est valide pour une image
+     */
+    private boolean hasValidImageExtension(String filename) {
+        String lowerFilename = filename.toLowerCase();
+        return lowerFilename.endsWith(".png") ||
+                lowerFilename.endsWith(".jpg") ||
+                lowerFilename.endsWith(".jpeg") ||
+                lowerFilename.endsWith(".gif") ||
+                lowerFilename.endsWith(".webp");
+    }
+
+    /**
+     * Sauvegarde le fichier logo et retourne l'URL
+     */
+    private String saveLogoFile(MultipartFile logoFile, String channelName) throws IOException {
+        try {
+            // Créer le répertoire de destination si nécessaire
+            String uploadDir = "uploads/logos/channels/";
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+                log.debug("Created upload directory: {}", uploadPath);
+            }
+
+            // Générer un nom de fichier unique
+            String originalFilename = logoFile.getOriginalFilename();
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+
+            // Format: channel_<channelName>_<timestamp>.<extension>
+            String sanitizedChannelName = channelName.replaceAll("[^a-zA-Z0-9]", "_");
+            String timestamp = String.valueOf(System.currentTimeMillis());
+            String filename = String.format("channel_%s_%s%s",
+                    sanitizedChannelName, timestamp, extension);
+
+            // Chemin complet du fichier
+            Path filePath = uploadPath.resolve(filename);
+
+            // Sauvegarder le fichier
+            try (InputStream inputStream = logoFile.getInputStream()) {
+                Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            // Retourner l'URL relative
+            String logoUrl = "/" + uploadDir + filename;
+            log.info("Logo file saved successfully: {} -> {}", originalFilename, logoUrl);
+
+            return logoUrl;
+
+        } catch (IOException e) {
+            log.error("Failed to save logo file for channel: {}", channelName, e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error saving logo file for channel: {}", channelName, e);
+            throw new IOException("Failed to save logo file: " + e.getMessage(), e);
+        }
     }
 }
