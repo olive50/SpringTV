@@ -1,5 +1,6 @@
 package com.tvboot.tivio.service;
 
+import com.tvboot.tivio.config.CdnConfig;
 import com.tvboot.tivio.dto.*;
 import com.tvboot.tivio.entities.*;
 import com.tvboot.tivio.exception.*;
@@ -7,6 +8,7 @@ import com.tvboot.tivio.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -35,6 +37,13 @@ public class TvChannelService {
     private final TvChannelRepository tvChannelRepository;
     private final TvChannelCategoryRepository categoryRepository;
     private final LanguageRepository languageRepository;
+
+    private String baseUrl = "http://localhost:8080";
+    private String logosPath = "/uploads/logos/channels";
+    private boolean enabled = false;
+
+//    @Autowired
+//    private CdnConfig cdnConfig;
 
     public List<TvChannelDTO> getAllChannels() {
         log.debug("Fetching all TV channels");
@@ -471,7 +480,10 @@ public class TvChannelService {
                     });
 
             // Sauvegarder le logo et obtenir l'URL
-            String logoUrl = saveLogoFile(logoFile, createDTO.getName());
+            String localPath = saveLogoFile(logoFile, createDTO.getName());
+//            channel.setLogoUrl(localPath);
+            String logoUrl=getFullLogoUrl(localPath);
+
             log.debug("Logo saved successfully: {}", logoUrl);
 
             // Créer la chaîne avec l'URL du logo
@@ -508,6 +520,24 @@ public class TvChannelService {
             throw new TvBootException("Failed to create TV channel with logo", "CREATE_CHANNEL_LOGO_ERROR",
                     HttpStatus.INTERNAL_SERVER_ERROR, e);
         }
+    }
+
+    public String getFullLogoUrl(String logoPath) {
+//        if (!enabled || logoPath == null) {
+//            return logoPath;
+//        }
+
+        // If it's already a full URL, return as is
+        if (logoPath.startsWith("http://") || logoPath.startsWith("https://")) {
+            return logoPath;
+        }
+
+        // If logoPath starts with /, remove it to avoid double slashes
+        if (logoPath.startsWith("/")) {
+            logoPath = logoPath.substring(1);
+        }
+
+        return baseUrl + "/" + logoPath;
     }
 
     /**
