@@ -1,10 +1,20 @@
 package com.tvboot.tivio.service;
 
-import com.tvboot.tivio.config.CdnConfig;
-import com.tvboot.tivio.dto.*;
-import com.tvboot.tivio.entities.*;
-import com.tvboot.tivio.exception.*;
-import com.tvboot.tivio.repository.*;
+import com.tvboot.tivio.dto.TvChannelCreateDTO;
+import com.tvboot.tivio.dto.TvChannelDTO;
+import com.tvboot.tivio.dto.TvChannelStatsDTO;
+import com.tvboot.tivio.dto.TvChannelUpdateDTO;
+import com.tvboot.tivio.entities.TvChannel;
+import com.tvboot.tivio.entities.TvChannelCategory;
+import com.tvboot.tivio.exception.BusinessException;
+import com.tvboot.tivio.exception.ResourceNotFoundException;
+import com.tvboot.tivio.exception.ValidationException;
+import com.tvboot.tivio.exception.DataIntegrityException;
+import com.tvboot.tivio.language.Language;
+import com.tvboot.tivio.language.LanguageRepository;
+import com.tvboot.tivio.mapper.TvChannelMapper;
+import com.tvboot.tivio.repository.TvChannelCategoryRepository;
+import com.tvboot.tivio.repository.TvChannelRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -12,14 +22,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,6 +32,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -37,50 +47,39 @@ public class TvChannelService {
     private final TvChannelRepository tvChannelRepository;
     private final TvChannelCategoryRepository categoryRepository;
     private final LanguageRepository languageRepository;
+    @Autowired
+    private FileStorageService fileStorageService;
+
+    @Autowired
+    private TvChannelMapper mapper;
+
+    private static final String LOGO_DIR = "channel-logos";
 
     private String baseUrl = "http://localhost:8080";
     private String logosPath = "/uploads/logos/channels";
-    private boolean enabled = false;
-
-//    @Autowired
-//    private CdnConfig cdnConfig;
 
     public List<TvChannelDTO> getAllChannels() {
         log.debug("Fetching all TV channels");
 
-        try {
-            List<TvChannel> channels = tvChannelRepository.findAll();
-            log.info("Successfully retrieved {} TV channels", channels.size());
+        List<TvChannel> channels = tvChannelRepository.findAll();
+        log.info("Successfully retrieved {} TV channels", channels.size());
 
-            return channels.stream()
-                    .map(this::convertToDTO)
-                    .collect(Collectors.toList());
-
-        } catch (Exception e) {
-            log.error("Error fetching all TV channels", e);
-            throw new TvBootException("Failed to retrieve TV channels", "FETCH_CHANNELS_ERROR",
-                    HttpStatus.INTERNAL_SERVER_ERROR, e);
-        }
+        return channels.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
     public Page<TvChannelDTO> getAllChannels(Pageable pageable) {
         log.debug("Fetching TV channels with pagination: page={}, size={}",
                 pageable.getPageNumber(), pageable.getPageSize());
 
-        try {
-            Page<TvChannel> channels = tvChannelRepository.findAll(pageable);
-            log.info("Successfully retrieved {} TV channels (page {}/{})",
-                    channels.getNumberOfElements(),
-                    channels.getNumber() + 1,
-                    channels.getTotalPages());
+        Page<TvChannel> channels = tvChannelRepository.findAll(pageable);
+        log.info("Successfully retrieved {} TV channels (page {}/{})",
+                channels.getNumberOfElements(),
+                channels.getNumber() + 1,
+                channels.getTotalPages());
 
-            return channels.map(this::convertToDTO);
-
-        } catch (Exception e) {
-            log.error("Error fetching paginated TV channels", e);
-            throw new TvBootException("Failed to retrieve paginated TV channels", "FETCH_CHANNELS_ERROR",
-                    HttpStatus.INTERNAL_SERVER_ERROR, e);
-        }
+        return channels.map(this::convertToDTO);
     }
 
     public Optional<TvChannelDTO> getChannelById(Long id) {
@@ -91,45 +90,31 @@ public class TvChannelService {
             throw new ValidationException("Channel ID must be a positive number");
         }
 
-        try {
-            Optional<TvChannel> channel = tvChannelRepository.findById(id);
+        Optional<TvChannel> channel = tvChannelRepository.findById(id);
 
-            if (channel.isPresent()) {
-                log.info("Successfully found TV channel: {} (ID: {})",
-                        channel.get().getName(), id);
-                MDC.put("channelName", channel.get().getName());
-                return channel.map(this::convertToDTO);
-            } else {
-                log.warn("TV channel not found with ID: {}", id);
-                return Optional.empty();
-            }
-
-        } catch (Exception e) {
-            log.error("Error fetching TV channel by ID: {}", id, e);
-            throw new TvBootException("Failed to retrieve TV channel", "FETCH_CHANNEL_ERROR",
-                    HttpStatus.INTERNAL_SERVER_ERROR, e);
+        if (channel.isPresent()) {
+            log.info("Successfully found TV channel: {} (ID: {})",
+                    channel.get().getName(), id);
+            MDC.put("channelName", channel.get().getName());
+            return channel.map(this::convertToDTO);
+        } else {
+            log.warn("TV channel not found with ID: {}", id);
+            return Optional.empty();
         }
     }
 
     public Optional<TvChannelDTO> getChannelByNumber(int channelNumber) {
         log.debug("Fetching TV channel by number: {}", channelNumber);
 
-        try {
-            Optional<TvChannel> channel = tvChannelRepository.findByChannelNumber(channelNumber);
+        Optional<TvChannel> channel = tvChannelRepository.findByChannelNumber(channelNumber);
 
-            if (channel.isPresent()) {
-                log.info("Successfully found TV channel: {} (Number: {})",
-                        channel.get().getName(), channelNumber);
-                return channel.map(this::convertToDTO);
-            } else {
-                log.warn("TV channel not found with number: {}", channelNumber);
-                return Optional.empty();
-            }
-
-        } catch (Exception e) {
-            log.error("Error fetching TV channel by number: {}", channelNumber, e);
-            throw new TvBootException("Failed to retrieve TV channel", "FETCH_CHANNEL_ERROR",
-                    HttpStatus.INTERNAL_SERVER_ERROR, e);
+        if (channel.isPresent()) {
+            log.info("Successfully found TV channel: {} (Number: {})",
+                    channel.get().getName(), channelNumber);
+            return channel.map(this::convertToDTO);
+        } else {
+            log.warn("TV channel not found with number: {}", channelNumber);
+            return Optional.empty();
         }
     }
 
@@ -140,20 +125,18 @@ public class TvChannelService {
             throw new ValidationException("Category ID must be a positive number");
         }
 
-        try {
-            List<TvChannel> channels = tvChannelRepository.findByCategoryId(categoryId);
-            log.info("Successfully retrieved {} TV channels for category ID: {}",
-                    channels.size(), categoryId);
-
-            return channels.stream()
-                    .map(this::convertToDTO)
-                    .collect(Collectors.toList());
-
-        } catch (Exception e) {
-            log.error("Error fetching TV channels by category ID: {}", categoryId, e);
-            throw new TvBootException("Failed to retrieve TV channels by category", "FETCH_CHANNELS_ERROR",
-                    HttpStatus.INTERNAL_SERVER_ERROR, e);
+        // Verify category exists
+        if (!categoryRepository.existsById(categoryId)) {
+            throw new ResourceNotFoundException("Category", "id", categoryId);
         }
+
+        List<TvChannel> channels = tvChannelRepository.findByCategoryId(categoryId);
+        log.info("Successfully retrieved {} TV channels for category ID: {}",
+                channels.size(), categoryId);
+
+        return channels.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
     public List<TvChannelDTO> getChannelsByLanguage(Long languageId) {
@@ -163,20 +146,18 @@ public class TvChannelService {
             throw new ValidationException("Language ID must be a positive number");
         }
 
-        try {
-            List<TvChannel> channels = tvChannelRepository.findByLanguageId(languageId);
-            log.info("Successfully retrieved {} TV channels for language ID: {}",
-                    channels.size(), languageId);
-
-            return channels.stream()
-                    .map(this::convertToDTO)
-                    .collect(Collectors.toList());
-
-        } catch (Exception e) {
-            log.error("Error fetching TV channels by language ID: {}", languageId, e);
-            throw new TvBootException("Failed to retrieve TV channels by language", "FETCH_CHANNELS_ERROR",
-                    HttpStatus.INTERNAL_SERVER_ERROR, e);
+        // Verify language exists
+        if (!languageRepository.existsById(languageId)) {
+            throw new ResourceNotFoundException("Language", "id", languageId);
         }
+
+        List<TvChannel> channels = tvChannelRepository.findByLanguageId(languageId);
+        log.info("Successfully retrieved {} TV channels for language ID: {}",
+                channels.size(), languageId);
+
+        return channels.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
     public Page<TvChannelDTO> searchChannelsByName(String name, Pageable pageable) {
@@ -186,144 +167,189 @@ public class TvChannelService {
             throw new ValidationException("Search name cannot be empty");
         }
 
-        try {
-            Page<TvChannel> channels = tvChannelRepository.findByNameContainingIgnoreCase(name, pageable);
-            log.info("Successfully found {} TV channels matching name: '{}'",
-                    channels.getNumberOfElements(), name);
+        Page<TvChannel> channels = tvChannelRepository.findByNameContainingIgnoreCase(name, pageable);
+        log.info("Successfully found {} TV channels matching name: '{}'",
+                channels.getNumberOfElements(), name);
 
-            return channels.map(this::convertToDTO);
-
-        } catch (Exception e) {
-            log.error("Error searching TV channels by name: '{}'", name, e);
-            throw new TvBootException("Failed to search TV channels", "SEARCH_CHANNELS_ERROR",
-                    HttpStatus.INTERNAL_SERVER_ERROR, e);
-        }
+        return channels.map(this::convertToDTO);
     }
 
     public TvChannelDTO createChannel(TvChannelCreateDTO createDTO) {
         log.info("Creating new TV channel: {}", createDTO.getName());
 
-        try {
-            // Validation
-            validateChannelNumber(createDTO.getChannelNumber(), null);
-            validateIpPortCombination(createDTO.getIp(), createDTO.getPort(), null);
+        // Validation
+        validateChannelNumber(createDTO.getChannelNumber(), null);
+        validateIpPortCombination(createDTO.getIp(), createDTO.getPort(), null);
 
-            // Récupérer les entités liées
-            TvChannelCategory category = categoryRepository.findById(createDTO.getCategoryId())
-                    .orElseThrow(() -> {
-                        log.warn("Category not found with ID: {}", createDTO.getCategoryId());
-                        return new ResourceNotFoundException("Category", createDTO.getCategoryId());
-                    });
+        // Récupérer les entités liées
+        TvChannelCategory category = categoryRepository.findById(createDTO.getCategoryId())
+                .orElseThrow(() -> {
+                    log.warn("Category not found with ID: {}", createDTO.getCategoryId());
+                    return new ResourceNotFoundException("Category", "id", createDTO.getCategoryId());
+                });
 
-            Language language = languageRepository.findById(createDTO.getLanguageId())
-                    .orElseThrow(() -> {
-                        log.warn("Language not found with ID: {}", createDTO.getLanguageId());
-                        return new ResourceNotFoundException("Language", createDTO.getLanguageId());
-                    });
+        Language language = languageRepository.findById(createDTO.getLanguageId())
+                .orElseThrow(() -> {
+                    log.warn("Language not found with ID: {}", createDTO.getLanguageId());
+                    return new ResourceNotFoundException("Language", "id", createDTO.getLanguageId());
+                });
 
-            // Créer la chaîne
-            TvChannel channel = TvChannel.builder()
-                    .channelNumber(createDTO.getChannelNumber())
-                    .name(createDTO.getName())
-                    .description(createDTO.getDescription())
-                    .ip(createDTO.getIp())
-                    .port(createDTO.getPort())
-                    .logoUrl(createDTO.getLogoUrl())
-                    .category(category)
-                    .language(language)
-                    .build();
+        // Créer la chaîne
+        TvChannel channel = TvChannel.builder()
+                .channelNumber(createDTO.getChannelNumber())
+                .name(createDTO.getName())
+                .description(createDTO.getDescription())
+                .ip(createDTO.getIp())
+                .port(createDTO.getPort())
+                .logoUrl(createDTO.getLogoUrl())
+                .category(category)
+                .language(language)
+                .build();
 
-            TvChannel savedChannel = tvChannelRepository.save(channel);
+        TvChannel savedChannel = tvChannelRepository.save(channel);
 
-            log.info("Successfully created TV channel: {} (ID: {}, Number: {})",
-                    savedChannel.getName(), savedChannel.getId(), savedChannel.getChannelNumber());
+        log.info("Successfully created TV channel: {} (ID: {}, Number: {})",
+                savedChannel.getName(), savedChannel.getId(), savedChannel.getChannelNumber());
 
-            // Ajouter des métadonnées au contexte de logging
-            MDC.put("channelId", savedChannel.getId().toString());
-            MDC.put("channelNumber", String.valueOf(savedChannel.getChannelNumber()));
+        // Ajouter des métadonnées au contexte de logging
+        MDC.put("channelId", savedChannel.getId().toString());
+        MDC.put("channelNumber", String.valueOf(savedChannel.getChannelNumber()));
 
-            return convertToDTO(savedChannel);
+        return convertToDTO(savedChannel);
+    }
 
-        } catch (TvBootException e) {
-            throw e; // Re-lancer les exceptions métier
-        } catch (Exception e) {
-            log.error("Unexpected error creating TV channel: {}", createDTO.getName(), e);
-            throw new TvBootException("Failed to create TV channel", "CREATE_CHANNEL_ERROR",
-                    HttpStatus.INTERNAL_SERVER_ERROR, e);
+    // CREATE with logo
+    public TvChannelDTO createChannelWithLogo(TvChannelCreateDTO createDTO, MultipartFile logoFile) {
+        // Save channel first
+        TvChannel channel = mapper.toEntity(createDTO);
+
+        // Handle logo upload
+        if (logoFile != null && !logoFile.isEmpty()) {
+            String logoPath = fileStorageService.storeFile(logoFile, LOGO_DIR);
+            channel.setLogoPath(logoPath);
+            channel.setLogoUrl(getFullLogoUrl(logoPath));
         }
+
+        channel = tvChannelRepository.save(channel);
+        return mapper.toDTO(channel);
+    }
+
+    public TvChannelDTO createChannelWithLogoV2(TvChannelCreateDTO createDTO, MultipartFile logoFile) throws IOException {
+        log.info("Creating new TV channel with logo: {}", createDTO.getName());
+
+        // Validation du fichier logo
+        validateLogoFile(logoFile);
+
+        // Validation standard de la chaîne
+        validateChannelNumber(createDTO.getChannelNumber(), null);
+        validateIpPortCombination(createDTO.getIp(), createDTO.getPort(), null);
+
+        // Récupérer les entités liées
+        TvChannelCategory category = categoryRepository.findById(createDTO.getCategoryId())
+                .orElseThrow(() -> {
+                    log.warn("Category not found with ID: {}", createDTO.getCategoryId());
+                    return new ResourceNotFoundException("Category", "id", createDTO.getCategoryId());
+                });
+
+        Language language = languageRepository.findById(createDTO.getLanguageId())
+                .orElseThrow(() -> {
+                    log.warn("Language not found with ID: {}", createDTO.getLanguageId());
+                    return new ResourceNotFoundException("Language", "id", createDTO.getLanguageId());
+                });
+
+        // Sauvegarder le logo et obtenir l'URL
+        String localPath = saveLogoFile(logoFile, createDTO.getName());
+        String logoUrl = getFullLogoUrl(localPath);
+
+        log.debug("Logo saved successfully: {}", logoUrl);
+
+        // Créer la chaîne avec l'URL du logo
+        TvChannel channel = TvChannel.builder()
+                .channelNumber(createDTO.getChannelNumber())
+                .name(createDTO.getName())
+                .description(createDTO.getDescription())
+                .ip(createDTO.getIp())
+                .port(createDTO.getPort())
+                .logoUrl(logoUrl)  // URL du logo sauvegardé
+                .category(category)
+                .language(language)
+                .build();
+
+        TvChannel savedChannel = tvChannelRepository.save(channel);
+
+        log.info("Successfully created TV channel with logo: {} (ID: {}, Number: {}, Logo: {})",
+                savedChannel.getName(), savedChannel.getId(), savedChannel.getChannelNumber(), logoUrl);
+
+        // Ajouter des métadonnées au contexte de logging
+        MDC.put("channelId", savedChannel.getId().toString());
+        MDC.put("channelNumber", String.valueOf(savedChannel.getChannelNumber()));
+        MDC.put("logoUrl", logoUrl);
+
+        return convertToDTO(savedChannel);
     }
 
     public TvChannelDTO updateChannel(Long id, TvChannelUpdateDTO updateDTO) {
         log.info("Updating TV channel with ID: {}", id);
 
-        try {
-            TvChannel channel = tvChannelRepository.findById(id)
-                    .orElseThrow(() -> {
-                        log.warn("TV channel not found for update with ID: {}", id);
-                        return new ResourceNotFoundException("TV Channel", id);
-                    });
+        TvChannel channel = tvChannelRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("TV channel not found for update with ID: {}", id);
+                    return new ResourceNotFoundException("TV Channel", "id", id);
+                });
 
-            String originalName = channel.getName();
+        String originalName = channel.getName();
 
-            // Mise à jour conditionnelle des champs
-            if (updateDTO.getChannelNumber() != null) {
-                validateChannelNumber(updateDTO.getChannelNumber(), id);
-                channel.setChannelNumber(updateDTO.getChannelNumber());
-                log.debug("Updated channel number to {}", updateDTO.getChannelNumber());
-            }
-
-            if (updateDTO.getName() != null) {
-                channel.setName(updateDTO.getName());
-                log.debug("Updated channel name from '{}' to '{}'", originalName, updateDTO.getName());
-            }
-
-            if (updateDTO.getDescription() != null) {
-                channel.setDescription(updateDTO.getDescription());
-            }
-
-            if (updateDTO.getIp() != null || updateDTO.getPort() != null) {
-                String newIp = updateDTO.getIp() != null ? updateDTO.getIp() : channel.getIp();
-                int newPort = updateDTO.getPort() != null ? updateDTO.getPort() : channel.getPort();
-
-                validateIpPortCombination(newIp, newPort, id);
-
-                channel.setIp(newIp);
-                channel.setPort(newPort);
-                log.debug("Updated IP:Port to {}:{}", newIp, newPort);
-            }
-
-            if (updateDTO.getLogoUrl() != null) {
-                channel.setLogoUrl(updateDTO.getLogoUrl());
-            }
-
-            if (updateDTO.getCategoryId() != null) {
-                TvChannelCategory category = categoryRepository.findById(updateDTO.getCategoryId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Category", updateDTO.getCategoryId()));
-                channel.setCategory(category);
-                log.debug("Updated channel category to: {}", category.getName());
-            }
-
-            if (updateDTO.getLanguageId() != null) {
-                Language language = languageRepository.findById(updateDTO.getLanguageId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Language", updateDTO.getLanguageId()));
-                channel.setLanguage(language);
-                log.debug("Updated channel language to: {}", language.getName());
-            }
-
-            TvChannel savedChannel = tvChannelRepository.save(channel);
-
-            log.info("Successfully updated TV channel: {} (ID: {})",
-                    savedChannel.getName(), savedChannel.getId());
-
-            return convertToDTO(savedChannel);
-
-        } catch (TvBootException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Unexpected error updating TV channel with ID: {}", id, e);
-            throw new TvBootException("Failed to update TV channel", "UPDATE_CHANNEL_ERROR",
-                    HttpStatus.INTERNAL_SERVER_ERROR, e);
+        // Mise à jour conditionnelle des champs
+        if (updateDTO.getChannelNumber() != null) {
+            validateChannelNumber(updateDTO.getChannelNumber(), id);
+            channel.setChannelNumber(updateDTO.getChannelNumber());
+            log.debug("Updated channel number to {}", updateDTO.getChannelNumber());
         }
+
+        if (updateDTO.getName() != null) {
+            channel.setName(updateDTO.getName());
+            log.debug("Updated channel name from '{}' to '{}'", originalName, updateDTO.getName());
+        }
+
+        if (updateDTO.getDescription() != null) {
+            channel.setDescription(updateDTO.getDescription());
+        }
+
+        if (updateDTO.getIp() != null || updateDTO.getPort() != null) {
+            String newIp = updateDTO.getIp() != null ? updateDTO.getIp() : channel.getIp();
+            int newPort = updateDTO.getPort() != null ? updateDTO.getPort() : channel.getPort();
+
+            validateIpPortCombination(newIp, newPort, id);
+
+            channel.setIp(newIp);
+            channel.setPort(newPort);
+            log.debug("Updated IP:Port to {}:{}", newIp, newPort);
+        }
+
+        if (updateDTO.getLogoUrl() != null) {
+            channel.setLogoUrl(updateDTO.getLogoUrl());
+        }
+
+        if (updateDTO.getCategoryId() != null) {
+            TvChannelCategory category = categoryRepository.findById(updateDTO.getCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Category", "id", updateDTO.getCategoryId()));
+            channel.setCategory(category);
+            log.debug("Updated channel category to: {}", category.getName());
+        }
+
+        if (updateDTO.getLanguageId() != null) {
+            Language language = languageRepository.findById(updateDTO.getLanguageId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Language", "id", updateDTO.getLanguageId()));
+            channel.setLanguage(language);
+            log.debug("Updated channel language to: {}", language.getName());
+        }
+
+        TvChannel savedChannel = tvChannelRepository.save(channel);
+
+        log.info("Successfully updated TV channel: {} (ID: {})",
+                savedChannel.getName(), savedChannel.getId());
+
+        return convertToDTO(savedChannel);
     }
 
     public void deleteChannel(Long id) {
@@ -334,40 +360,38 @@ public class TvChannelService {
             throw new ValidationException("Channel ID must be a positive number");
         }
 
+        TvChannel channel = tvChannelRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("TV channel not found for deletion with ID: {}", id);
+                    return new ResourceNotFoundException("TV Channel", "id", id);
+                });
+
+        String channelName = channel.getName();
+        int channelNumber = channel.getChannelNumber();
+
+        // Ajouter contexte au MDC pour traçabilité
+        MDC.put("channelName", channelName);
+        MDC.put("channelNumber", String.valueOf(channelNumber));
+
+        log.info("Found TV channel for deletion: '{}' (Number: {}, ID: {})",
+                channelName, channelNumber, id);
+
         try {
-            TvChannel channel = tvChannelRepository.findById(id)
-                    .orElseThrow(() -> {
-                        log.warn("TV channel not found for deletion with ID: {}", id);
-                        return new ResourceNotFoundException("TV Channel", id);
-                    });
+            tvChannelRepository.delete(channel);
+            log.info("Successfully deleted TV channel: '{}' (ID: {})", channelName, id);
 
-            String channelName = channel.getName();
-            int channelNumber = channel.getChannelNumber();
+        } catch (DataIntegrityViolationException e) {
+            log.error("Cannot delete TV channel '{}' due to data integrity constraints", channelName, e);
 
-            // Ajouter contexte au MDC pour traçabilité
-            MDC.put("channelName", channelName);
-            MDC.put("channelNumber", String.valueOf(channelNumber));
+            String errorMessage = analyzeConstraintViolation(e, channelName);
 
-            log.info("Found TV channel for deletion: '{}' (Number: {}, ID: {})",
-                    channelName, channelNumber, id);
+            // Use DataIntegrityException with additional data
+            Map<String, Object> errorData = new HashMap<>();
+            errorData.put("channelId", id);
+            errorData.put("channelName", channelName);
+            errorData.put("constraintType", extractConstraintType(e));
 
-            try {
-                tvChannelRepository.delete(channel);
-                log.info("Successfully deleted TV channel: '{}' (ID: {})", channelName, id);
-
-            } catch (DataIntegrityViolationException e) {
-                log.error("Cannot delete TV channel '{}' due to data integrity constraints", channelName, e);
-
-                String errorMessage = analyzeConstraintViolation(e, channelName);
-                throw new BusinessException(errorMessage, "DELETE_CONSTRAINT_VIOLATION");
-            }
-
-        } catch (TvBootException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Unexpected error deleting TV channel with ID: {}", id, e);
-            throw new TvBootException("Failed to delete TV channel", "DELETE_CHANNEL_ERROR",
-                    HttpStatus.INTERNAL_SERVER_ERROR, e);
+            throw new DataIntegrityException(errorMessage, errorData);
         } finally {
             // Nettoyer le MDC
             MDC.remove("channelName");
@@ -383,9 +407,16 @@ public class TvChannelService {
                 (excludeId == null || !existingChannel.get().getId().equals(excludeId))) {
             log.warn("Channel number {} already exists for channel: {}",
                     channelNumber, existingChannel.get().getName());
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("channelNumber", channelNumber);
+            data.put("existingChannelName", existingChannel.get().getName());
+            data.put("existingChannelId", existingChannel.get().getId());
+
             throw new BusinessException(
-                    "Channel number already exists: " + channelNumber,
-                    "DUPLICATE_CHANNEL_NUMBER");
+                    "Channel number " + channelNumber + " is already in use",
+                    data
+            );
         }
     }
 
@@ -396,9 +427,17 @@ public class TvChannelService {
                 (excludeId == null || !existingChannel.get().getId().equals(excludeId))) {
             log.warn("IP:Port combination {}:{} already exists for channel: {}",
                     ip, port, existingChannel.get().getName());
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("ip", ip);
+            data.put("port", port);
+            data.put("existingChannelName", existingChannel.get().getName());
+            data.put("existingChannelId", existingChannel.get().getId());
+
             throw new BusinessException(
-                    "IP and port combination already exists: " + ip + ":" + port,
-                    "DUPLICATE_IP_PORT");
+                    "IP and port combination " + ip + ":" + port + " is already in use",
+                    data
+            );
         }
     }
 
@@ -420,6 +459,17 @@ public class TvChannelService {
         return String.format("Channel '%s' cannot be deleted due to database constraints", channelName);
     }
 
+    private String extractConstraintType(DataIntegrityViolationException e) {
+        String message = e.getMessage() != null ? e.getMessage() : "";
+
+        if (message.contains("package_channels")) return "PACKAGE_REFERENCE";
+        if (message.contains("terminal_channel_assignments")) return "TERMINAL_ASSIGNMENT";
+        if (message.contains("epg_entries")) return "EPG_ENTRIES";
+        if (message.contains("foreign key")) return "FOREIGN_KEY";
+
+        return "UNKNOWN";
+    }
+
     private TvChannelDTO convertToDTO(TvChannel channel) {
         TvChannelDTO.CategoryDTO categoryDTO = null;
         if (channel.getCategory() != null) {
@@ -431,12 +481,12 @@ public class TvChannelService {
                     .build();
         }
 
-        TvChannelDTO.LanguageDTO languageDTO = null;
+        TvChannelDTO.TvLanguageDTO languageDTO = null;
         if (channel.getLanguage() != null) {
-            languageDTO = TvChannelDTO.LanguageDTO.builder()
+            languageDTO = TvChannelDTO.TvLanguageDTO.builder()
                     .id(channel.getLanguage().getId())
                     .name(channel.getLanguage().getName())
-                    .code(channel.getLanguage().getCode())
+                    .code(channel.getLanguage().getLocaleCode())
                     .build();
         }
 
@@ -453,82 +503,9 @@ public class TvChannelService {
                 .build();
     }
 
-    // Ajoutez cette méthode à votre TvChannelService existant
-
-    public TvChannelDTO createChannelWithLogo(TvChannelCreateDTO createDTO, MultipartFile logoFile) throws IOException {
-        log.info("Creating new TV channel with logo: {}", createDTO.getName());
-
-        try {
-            // Validation du fichier logo
-            validateLogoFile(logoFile);
-
-            // Validation standard de la chaîne
-            validateChannelNumber(createDTO.getChannelNumber(), null);
-            validateIpPortCombination(createDTO.getIp(), createDTO.getPort(), null);
-
-            // Récupérer les entités liées
-            TvChannelCategory category = categoryRepository.findById(createDTO.getCategoryId())
-                    .orElseThrow(() -> {
-                        log.warn("Category not found with ID: {}", createDTO.getCategoryId());
-                        return new ResourceNotFoundException("Category", createDTO.getCategoryId());
-                    });
-
-            Language language = languageRepository.findById(createDTO.getLanguageId())
-                    .orElseThrow(() -> {
-                        log.warn("Language not found with ID: {}", createDTO.getLanguageId());
-                        return new ResourceNotFoundException("Language", createDTO.getLanguageId());
-                    });
-
-            // Sauvegarder le logo et obtenir l'URL
-            String localPath = saveLogoFile(logoFile, createDTO.getName());
-//            channel.setLogoUrl(localPath);
-            String logoUrl=getFullLogoUrl(localPath);
-
-            log.debug("Logo saved successfully: {}", logoUrl);
-
-            // Créer la chaîne avec l'URL du logo
-            TvChannel channel = TvChannel.builder()
-                    .channelNumber(createDTO.getChannelNumber())
-                    .name(createDTO.getName())
-                    .description(createDTO.getDescription())
-                    .ip(createDTO.getIp())
-                    .port(createDTO.getPort())
-                    .logoUrl(logoUrl)  // URL du logo sauvegardé
-                    .category(category)
-                    .language(language)
-                    .build();
-
-            TvChannel savedChannel = tvChannelRepository.save(channel);
-
-            log.info("Successfully created TV channel with logo: {} (ID: {}, Number: {}, Logo: {})",
-                    savedChannel.getName(), savedChannel.getId(), savedChannel.getChannelNumber(), logoUrl);
-
-            // Ajouter des métadonnées au contexte de logging
-            MDC.put("channelId", savedChannel.getId().toString());
-            MDC.put("channelNumber", String.valueOf(savedChannel.getChannelNumber()));
-            MDC.put("logoUrl", logoUrl);
-
-            return convertToDTO(savedChannel);
-
-        } catch (TvBootException e) {
-            throw e; // Re-lancer les exceptions métier
-        } catch (IOException e) {
-            log.error("I/O error while creating channel with logo: {}", createDTO.getName(), e);
-            throw e; // Re-lancer les erreurs I/O pour gestion par le contrôleur
-        } catch (Exception e) {
-            log.error("Unexpected error creating TV channel with logo: {}", createDTO.getName(), e);
-            throw new TvBootException("Failed to create TV channel with logo", "CREATE_CHANNEL_LOGO_ERROR",
-                    HttpStatus.INTERNAL_SERVER_ERROR, e);
-        }
-    }
-
     public String getFullLogoUrl(String logoPath) {
-//        if (!enabled || logoPath == null) {
-//            return logoPath;
-//        }
-
         // If it's already a full URL, return as is
-        if (logoPath.startsWith("http://") || logoPath.startsWith("https://")) {
+        if (logoPath == null || logoPath.startsWith("http://") || logoPath.startsWith("https://")) {
             return logoPath;
         }
 
@@ -553,21 +530,36 @@ public class TvChannelService {
         if (logoFile.getSize() > maxSize) {
             log.warn("Logo file size exceeds maximum: {} bytes (max: {} bytes)",
                     logoFile.getSize(), maxSize);
-            throw new ValidationException("Logo file size exceeds maximum allowed size of 5MB");
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("fileSize", logoFile.getSize());
+            data.put("maxSize", maxSize);
+            data.put("fileName", logoFile.getOriginalFilename());
+
+            throw new ValidationException(
+                    "Logo file size exceeds maximum allowed size of 5MB",
+                    data
+            );
         }
 
         // Vérifier le type de fichier
         String contentType = logoFile.getContentType();
         if (contentType == null || !isValidImageType(contentType)) {
             log.warn("Invalid logo file type: {}", contentType);
-            throw new IllegalArgumentException("Invalid file type. Only image files (PNG, JPG, JPEG, GIF) are allowed");
+            throw new ValidationException(
+                    "contentType",
+                    "Invalid file type. Only image files (PNG, JPG, JPEG, GIF, WEBP) are allowed"
+            );
         }
 
         // Vérifier l'extension du fichier
         String originalFilename = logoFile.getOriginalFilename();
         if (originalFilename == null || !hasValidImageExtension(originalFilename)) {
             log.warn("Invalid logo file extension: {}", originalFilename);
-            throw new IllegalArgumentException("Invalid file extension. Only .png, .jpg, .jpeg, .gif files are allowed");
+            throw new ValidationException(
+                    "fileExtension",
+                    "Invalid file extension. Only .png, .jpg, .jpeg, .gif, .webp files are allowed"
+            );
         }
 
         log.debug("Logo file validation passed: {} ({})", originalFilename, contentType);
@@ -638,10 +630,72 @@ public class TvChannelService {
 
         } catch (IOException e) {
             log.error("Failed to save logo file for channel: {}", channelName, e);
-            throw e;
-        } catch (Exception e) {
-            log.error("Unexpected error saving logo file for channel: {}", channelName, e);
-            throw new IOException("Failed to save logo file: " + e.getMessage(), e);
+
+            Map<String, Object> errorData = new HashMap<>();
+            errorData.put("channelName", channelName);
+            errorData.put("fileName", logoFile.getOriginalFilename());
+
+            throw new BusinessException(
+                    "Failed to save logo file: " + e.getMessage(),
+                    errorData
+            );
         }
+    }
+
+    /**
+     * Get comprehensive channel statistics
+     */
+    public TvChannelStatsDTO getChannelStatistics() {
+        // Get basic counts
+        long totalChannels = tvChannelRepository.count();
+        long activeChannels = tvChannelRepository.countByActive(true);
+        long inactiveChannels = tvChannelRepository.countByActive(false);
+
+        // Get category statistics
+        Map<String, Long> categoryStats = new HashMap<>();
+        List<Object[]> categoryResults = tvChannelRepository.countByCategory();
+        for (Object[] result : categoryResults) {
+            String categoryName = (String) result[0];
+            Long count = (Long) result[1];
+            categoryStats.put(categoryName, count);
+        }
+
+        // Get language statistics
+        Map<String, Long> languageStats = new HashMap<>();
+        List<Object[]> languageResults = tvChannelRepository.countByLanguage();
+        for (Object[] result : languageResults) {
+            String languageName = (String) result[0];
+            Long count = (Long) result[1];
+            languageStats.put(languageName, count);
+        }
+
+        return TvChannelStatsDTO.builder()
+                .total(totalChannels)
+                .active(activeChannels)
+                .inactive(inactiveChannels)
+                .byCategory(categoryStats)
+                .byLanguage(languageStats)
+                .build();
+    }
+
+    /**
+     * Alternative: Get detailed statistics with additional metrics
+     */
+    public TvChannelStatsDTO getDetailedStatistics() {
+        TvChannelStatsDTO stats = getChannelStatistics();
+
+        // Add zero counts for categories without channels
+        List<TvChannelCategory> allCategories = categoryRepository.findAll();
+        for (TvChannelCategory category : allCategories) {
+            stats.getByCategory().putIfAbsent(category.getName(), 0L);
+        }
+
+        // Add zero counts for languages without channels
+        List<Language> allLanguages = languageRepository.findAll();
+        for (Language language : allLanguages) {
+            stats.getByLanguage().putIfAbsent(language.getName(), 0L);
+        }
+
+        return stats;
     }
 }

@@ -29,4 +29,6 @@ public class TvChannelUpdateDTO {
     private String logoUrl;
     private Long categoryId;
     private Long languageId;
+    private String streamUrl;
+    private boolean active = true;
 }

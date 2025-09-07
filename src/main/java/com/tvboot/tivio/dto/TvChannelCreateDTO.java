@@ -46,4 +46,7 @@ public class TvChannelCreateDTO {
     @Schema(description = "ID de la langue", example = "2")
     @NotNull(message = "Language ID is required")
     private Long languageId;
+    private String streamUrl;
+    private boolean active = true;
+
 }

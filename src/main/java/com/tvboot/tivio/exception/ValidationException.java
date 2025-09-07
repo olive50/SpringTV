@@ -1,14 +1,28 @@
 package com.tvboot.tivio.exception;
 
 import org.springframework.http.HttpStatus;
-import java.util.Map;
 
-public class ValidationException extends TvBootException {
-    public ValidationException(String message, Map<String, String> validationErrors) {
-        super(message, "VALIDATION_ERROR", HttpStatus.BAD_REQUEST, validationErrors);
-    }
+/**
+ * Exception thrown when validation fails
+ */
+public class ValidationException extends TvbootException {
+
+    private static final String ERROR_CODE = "VALIDATION_ERROR";
 
     public ValidationException(String message) {
-        super(message, "VALIDATION_ERROR", HttpStatus.BAD_REQUEST);
+        super(message, ERROR_CODE, HttpStatus.BAD_REQUEST);
+    }
+
+    public ValidationException(String message, Object data) {
+        super(message, ERROR_CODE, HttpStatus.BAD_REQUEST, data);
+    }
+
+    public ValidationException(String message, Throwable cause) {
+        super(message, cause, ERROR_CODE, HttpStatus.BAD_REQUEST);
+    }
+
+    public ValidationException(String field, String reason) {
+        super(String.format("Validation failed for field '%s': %s", field, reason),
+                ERROR_CODE, HttpStatus.BAD_REQUEST);
     }
 }

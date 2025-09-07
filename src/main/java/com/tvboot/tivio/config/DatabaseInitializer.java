@@ -1,7 +1,15 @@
 package com.tvboot.tivio.config;
 
-import com.tvboot.tivio.entities.*;
-import com.tvboot.tivio.repository.*;
+import com.tvboot.tivio.entities.Room;
+import com.tvboot.tivio.entities.TvChannel;
+import com.tvboot.tivio.entities.TvChannelCategory;
+import com.tvboot.tivio.entities.User;
+import com.tvboot.tivio.language.Language;
+import com.tvboot.tivio.language.LanguageRepository;
+import com.tvboot.tivio.repository.RoomRepository;
+import com.tvboot.tivio.repository.TvChannelCategoryRepository;
+import com.tvboot.tivio.repository.TvChannelRepository;
+import com.tvboot.tivio.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -9,15 +17,15 @@ import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Component
@@ -136,18 +144,152 @@ public class DatabaseInitializer implements CommandLineRunner {
 
         try {
             if (languageRepository.count() == 0) {
-                log.info("Creating default languages...");
+                log.info("Creating comprehensive languages...");
 
                 List<Language> languages = List.of(
-                        Language.builder().name("English").code("EN").build(),
-                        Language.builder().name("French").code("FR").build(),
-                        Language.builder().name("Arabic").code("AR").build(),
-                        Language.builder().name("Spanish").code("ES").build(),
-                        Language.builder().name("German").code("DE").build()
+                                Language.builder()
+                                .name("English")
+                                .nativeName("English")
+                                .iso6391("en")
+                                .iso6392("eng")
+                                .localeCode("en-US")
+                                .charset("UTF-8")
+                                .isRtl(false)
+                                .isActive(true)
+                                .isDefault(true)
+                                .isAdminEnabled(true)
+                                .isGuestEnabled(true)
+                                .displayOrder(1)
+                                .fontFamily("Arial, sans-serif")
+                                .currencyCode("USD")
+                                .currencySymbol("$")
+                                .dateFormat("MM/dd/yyyy")
+                                .timeFormat("hh:mm a")
+                                .numberFormat("#,##0.00")
+                                .decimalSeparator('.')
+                                .thousandsSeparator(',')
+                                .uiTranslationProgress(100)
+                                .channelTranslationProgress(95)
+                                .epgTranslationEnabled(true)
+                                .welcomeMessage("Welcome to our hotel entertainment system!")
+                                .supportedPlatforms(Set.of("TIZEN", "WEBOS", "ANDROID", "WEB", "IOS"))
+                                .build(),
+
+                        Language.builder()
+                                .name("Arabic")
+                                .nativeName("العربية")
+                                .iso6391("ar")
+                                .iso6392("ara")
+                                .localeCode("ar-SA")
+                                .charset("UTF-8")
+                                .isRtl(true)
+                                .isActive(true)
+                                .isDefault(false)
+                                .isAdminEnabled(true)
+                                .isGuestEnabled(true)
+                                .displayOrder(2)
+                                .fontFamily("Arial, Noto Sans Arabic")
+                                .currencyCode("SAR")
+                                .currencySymbol("ر.س")
+                                .dateFormat("yyyy/MM/dd")
+                                .timeFormat("HH:mm")
+                                .numberFormat("#,##0.00")
+                                .decimalSeparator('.')
+                                .thousandsSeparator(',')
+                                .uiTranslationProgress(98)
+                                .channelTranslationProgress(90)
+                                .epgTranslationEnabled(true)
+                                .welcomeMessage("مرحباً بكم في نظام الترفيه بالفندق!")
+                                .supportedPlatforms(Set.of("TIZEN", "WEBOS", "ANDROID", "WEB", "IOS"))
+                                .build(),
+
+                        Language.builder()
+                                .name("French")
+                                .nativeName("Français")
+                                .iso6391("fr")
+                                .iso6392("fra")
+                                .localeCode("fr-FR")
+                                .charset("UTF-8")
+                                .isRtl(false)
+                                .isActive(true)
+                                .isDefault(false)
+                                .isAdminEnabled(true)
+                                .isGuestEnabled(true)
+                                .displayOrder(3)
+                                .fontFamily("Arial, sans-serif")
+                                .currencyCode("EUR")
+                                .currencySymbol("€")
+                                .dateFormat("dd/MM/yyyy")
+                                .timeFormat("HH:mm")
+                                .numberFormat("# ##0,00")
+                                .decimalSeparator(',')
+                                .thousandsSeparator(' ')
+                                .uiTranslationProgress(100)
+                                .channelTranslationProgress(88)
+                                .epgTranslationEnabled(true)
+                                .welcomeMessage("Bienvenue dans notre système de divertissement hôtelier!")
+                                .supportedPlatforms(Set.of("TIZEN", "WEBOS", "ANDROID", "WEB", "IOS"))
+                                .build(),
+
+                        Language.builder()
+                                .name("Spanish")
+                                .nativeName("Español")
+                                .iso6391("es")
+                                .iso6392("spa")
+                                .localeCode("es-ES")
+                                .charset("UTF-8")
+                                .isRtl(false)
+                                .isActive(true)
+                                .isDefault(false)
+                                .isAdminEnabled(true)
+                                .isGuestEnabled(true)
+                                .displayOrder(4)
+                                .fontFamily("Arial, sans-serif")
+                                .currencyCode("EUR")
+                                .currencySymbol("€")
+                                .dateFormat("dd/MM/yyyy")
+                                .timeFormat("HH:mm")
+                                .numberFormat("#,##0.00")
+                                .decimalSeparator(',')
+                                .thousandsSeparator('.')
+                                .uiTranslationProgress(95)
+                                .channelTranslationProgress(85)
+                                .epgTranslationEnabled(true)
+                                .welcomeMessage("¡Bienvenido a nuestro sistema de entretenimiento hotelero!")
+                                .supportedPlatforms(Set.of("TIZEN", "WEBOS", "ANDROID", "WEB", "IOS"))
+                                .build(),
+
+                        Language.builder()
+                                .name("German")
+                                .nativeName("Deutsch")
+                                .iso6391("de")
+                                .iso6392("deu")
+                                .localeCode("de-DE")
+                                .charset("UTF-8")
+                                .isRtl(false)
+                                .isActive(true)
+                                .isDefault(false)
+                                .isAdminEnabled(true)
+                                .isGuestEnabled(true)
+                                .displayOrder(5)
+                                .fontFamily("Arial, sans-serif")
+                                .currencyCode("EUR")
+                                .currencySymbol("€")
+                                .dateFormat("dd.MM.yyyy")
+                                .timeFormat("HH:mm")
+                                .numberFormat("#.##0,00")
+                                .decimalSeparator(',')
+                                .thousandsSeparator('.')
+                                .uiTranslationProgress(92)
+                                .channelTranslationProgress(80)
+                                .epgTranslationEnabled(true)
+                                .welcomeMessage("Willkommen in unserem Hotel-Unterhaltungssystem!")
+                                .supportedPlatforms(Set.of("TIZEN", "WEBOS", "ANDROID", "WEB", "IOS"))
+                                .build()
                 );
 
                 List<Language> savedLanguages = languageRepository.saveAll(languages);
-                log.info("✅ Created {} languages", savedLanguages.size());
+                log.info("✅ Created {} comprehensive languages", savedLanguages.size());
             } else {
                 log.info("Languages already initialized ({})", languageRepository.count());
             }
@@ -242,9 +384,9 @@ public class DatabaseInitializer implements CommandLineRunner {
                 log.info("Creating sample TV channels...");
 
                 // Get references to languages and categories
-                Language english = languageRepository.findByCode("EN")
+                Language english = languageRepository.findByIso6391("en")
                         .orElseThrow(() -> new RuntimeException("English language not found"));
-                Language arabic = languageRepository.findByCode("AR")
+                Language arabic = languageRepository.findByIso6391("ar")
                         .orElseThrow(() -> new RuntimeException("Arabic language not found"));
 
                 TvChannelCategory news = categoryRepository.findByName("News")
@@ -268,8 +410,17 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .channelNumber(102)
                                 .name("BBC World News")
                                 .description("British news channel")
-                                .ip("192.168.1.100")
+                                .ip("192.168.1.101")
                                 .port(8002)
+                                .category(news)
+                                .language(english)
+                                .build(),
+                        TvChannel.builder()
+                                .channelNumber(103)
+                                .name("Al Jazeera English")
+                                .description("Qatari international news channel")
+                                .ip("192.168.1.102")
+                                .port(8003)
                                 .category(news)
                                 .language(english)
                                 .build(),
@@ -277,8 +428,17 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .channelNumber(201)
                                 .name("ESPN")
                                 .description("Sports entertainment channel")
-                                .ip("192.168.1.101")
-                                .port(8001)
+                                .ip("192.168.1.103")
+                                .port(8004)
+                                .category(sports)
+                                .language(english)
+                                .build(),
+                        TvChannel.builder()
+                                .channelNumber(202)
+                                .name("beIN Sports")
+                                .description("International sports channel")
+                                .ip("192.168.1.104")
+                                .port(8005)
                                 .category(sports)
                                 .language(english)
                                 .build()

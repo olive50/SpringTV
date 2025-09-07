@@ -97,3 +97,27 @@ public class Terminal {
         ACTIVE, INACTIVE, MAINTENANCE, OFFLINE, FAULTY
     }
 }
+
+/*--
+-- Table structure for table `terminal`
+--
+
+DROP TABLE IF EXISTS `terminal`;
+CREATE TABLE `terminal` (
+  `IP_terminal` varchar(15) NOT NULL default '',
+  `type_terminal` enum('DSL4000','AMINET100','other','PHILIPS','SAMSUNG','SAMSUNG_TIZEN','LG') NOT NULL default 'other',
+  `f_terminal_sub_type` tinytext NOT NULL,
+  `numero_chambre` varchar(30) NOT NULL default '',
+  `active` enum('yes','no') NOT NULL default 'no',
+  `maintenance` enum('yes','no') NOT NULL default 'no',
+  `f_pms_room_number` varchar(30) default NULL,
+  `f_guest_room_number` text,
+  `f_location` text NOT NULL,
+  `f_reboot_flag` enum('true','false') NOT NULL default 'false',
+  `parental_code` tinytext NOT NULL,
+  `f_wakeup_allowed` enum('yes','no') NOT NULL default 'yes',
+  `f_wakeup_mode` enum('internal','external') NOT NULL default 'internal',
+  `f_record_type` enum('registration','session') NOT NULL default 'registration',
+  PRIMARY KEY  (`IP_terminal`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+*/

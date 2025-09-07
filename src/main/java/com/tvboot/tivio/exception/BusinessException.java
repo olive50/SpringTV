@@ -2,16 +2,22 @@ package com.tvboot.tivio.exception;
 
 import org.springframework.http.HttpStatus;
 
-public class BusinessException extends TvBootException {
-    public BusinessException(String message) {
-        super(message, "BUSINESS_ERROR", HttpStatus.BAD_REQUEST);
-    }
+/**
+ * Exception thrown for business logic violations
+ */
+public class BusinessException extends TvbootException {
 
-    public BusinessException(String message, String errorCode) {
-        super(message, errorCode, HttpStatus.BAD_REQUEST);
+    private static final String ERROR_CODE = "BUSINESS_ERROR";
+
+    public BusinessException(String message) {
+        super(message, ERROR_CODE, HttpStatus.BAD_REQUEST);
     }
 
     public BusinessException(String message, Object data) {
-        super(message, "BUSINESS_ERROR", HttpStatus.BAD_REQUEST, data);
+        super(message, ERROR_CODE, HttpStatus.BAD_REQUEST, data);
+    }
+
+    public BusinessException(String message, Throwable cause) {
+        super(message, cause, ERROR_CODE, HttpStatus.BAD_REQUEST);
     }
 }

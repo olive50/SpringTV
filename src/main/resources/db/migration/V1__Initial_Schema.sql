@@ -33,17 +33,74 @@ CREATE TABLE users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ===================================================================
--- IPTV CONTENT MANAGEMENT
+-- LANGUAGES MANAGEMENT
 -- ===================================================================
 
 CREATE TABLE languages (
-                           id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                           name VARCHAR(100) NOT NULL UNIQUE,
-                           code VARCHAR(3) NOT NULL UNIQUE,
+                           id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                           name VARCHAR(100) NOT NULL,
+                           native_name VARCHAR(100) NOT NULL,
+                           iso_639_1 VARCHAR(2) NOT NULL,
+                           iso_639_2 VARCHAR(3) NULL,
+                           locale_code VARCHAR(5) NULL,
+                           charset VARCHAR(50) DEFAULT 'UTF-8',
+                           flag_url VARCHAR(500) NULL,
+                           flag_path VARCHAR(255) NULL,
+                           is_rtl TINYINT(1) NOT NULL DEFAULT 0,
+                           is_active TINYINT(1) NOT NULL DEFAULT 1,
+                           is_default TINYINT(1) NOT NULL DEFAULT 0,
+                           is_admin_enabled TINYINT(1) NOT NULL DEFAULT 1,
+                           is_guest_enabled TINYINT(1) NOT NULL DEFAULT 0,
+                           display_order INT NOT NULL DEFAULT 0,
+                           font_family VARCHAR(100) NULL,
+                           currency_code VARCHAR(3) NULL,
+                           currency_symbol VARCHAR(10) NULL,
+                           date_format VARCHAR(50) DEFAULT 'yyyy-MM-dd',
+                           time_format VARCHAR(50) DEFAULT 'HH:mm',
+                           number_format VARCHAR(50) NULL,
+                           decimal_separator CHAR(1) DEFAULT '.',
+                           thousands_separator CHAR(1) DEFAULT ',',
+                           ui_translation_progress INT UNSIGNED DEFAULT 0,
+                           channel_translation_progress INT UNSIGNED DEFAULT 0,
+                           epg_translation_enabled TINYINT(1) DEFAULT 0,
+                           welcome_message TEXT NULL,
+                           created_at DATETIME(6) NOT NULL,
+                           updated_at DATETIME(6) NULL,
+                           created_by VARCHAR(100) NULL,
+                           last_modified_by VARCHAR(100) NULL,
+                           
 
-                           INDEX idx_languages_code (code),
-                           INDEX idx_languages_name (name)
+                           PRIMARY KEY (id),
+                           UNIQUE KEY uk_language_iso_639_1 (iso_639_1),
+
+                           KEY idx_language_iso_639_1 (iso_639_1),
+                           KEY idx_language_active (is_active),
+                           KEY idx_language_default (is_default),
+                           KEY idx_language_admin_enabled (is_admin_enabled),
+                           KEY idx_language_guest_enabled (is_guest_enabled),
+                           KEY idx_language_display_order (display_order),
+                           KEY idx_language_composite (is_active, is_guest_enabled, display_order),
+                           KEY idx_language_locale (locale_code),
+                           KEY idx_language_currency (currency_code),
+                           KEY idx_language_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE language_supported_platforms (
+                                              language_id BIGINT UNSIGNED NOT NULL,
+                                              platform VARCHAR(50) NOT NULL,
+
+                                              PRIMARY KEY (language_id, platform),
+                                              CONSTRAINT fk_language_platforms_language
+                                                  FOREIGN KEY (language_id)
+                                                      REFERENCES languages(id)
+                                                      ON DELETE CASCADE,
+
+                                              KEY idx_language_platforms_platform (platform)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===================================================================
+-- IPTV CONTENT MANAGEMENT
+-- ===================================================================
 
 CREATE TABLE tv_channel_categories (
                                        id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -61,9 +118,13 @@ CREATE TABLE tv_channels (
                              description TEXT,
                              ip VARCHAR(45) NOT NULL,
                              port INT NOT NULL,
-                             logo VARCHAR(500),
+                             logo_url VARCHAR(200),
+                             logo_path VARCHAR(200),
                              category_id BIGINT,
-                             language_id BIGINT,
+                             language_id BIGINT UNSIGNED,  -- Matches languages.id type
+                             is_active BOOLEAN DEFAULT TRUE,
+                             created_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6),
+                             updated_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
 
                              CONSTRAINT fk_channels_category FOREIGN KEY (category_id) REFERENCES tv_channel_categories(id) ON DELETE SET NULL ON UPDATE CASCADE,
                              CONSTRAINT fk_channels_language FOREIGN KEY (language_id) REFERENCES languages(id) ON DELETE SET NULL ON UPDATE CASCADE,
@@ -268,6 +329,32 @@ CREATE TABLE terminal_channel_assignments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ===================================================================
+-- TRIGGERS FOR DATA INTEGRITY
+-- ===================================================================
+
+-- DELIMITER $$
+--
+-- CREATE TRIGGER before_language_insert
+--     BEFORE INSERT ON languages
+--     FOR EACH ROW
+-- BEGIN
+--     IF NEW.is_default = 1 THEN
+--     UPDATE languages SET is_default = 0 WHERE is_default = 1;
+-- END IF;
+-- END$$
+--
+-- CREATE TRIGGER before_language_update
+--     BEFORE UPDATE ON languages
+--     FOR EACH ROW
+-- BEGIN
+--     IF NEW.is_default = 1 AND OLD.is_default = 0 THEN
+--     UPDATE languages SET is_default = 0 WHERE is_default = 1 AND id != NEW.id;
+-- END IF;
+-- END$$
+--
+-- DELIMITER ;
+
+-- ===================================================================
 -- INITIAL DATA INSERTION
 -- ===================================================================
 
@@ -278,13 +365,118 @@ INSERT INTO users (username, email, password, first_name, last_name, role, is_ac
                                                                                           ('receptionist', 'receptionist@tvboot.com', '$2a$10$xDBKoM67grR.QBlMrb6BOOS8z1MtHZfkjE6m3Vl2jXr.HXy7/7Y.O', 'Front', 'Desk', 'RECEPTIONIST', TRUE),
                                                                                           ('technician', 'technician@tvboot.com', '$2a$10$xDBKoM67grR.QBlMrb6BOOS8z1MtHZfkjE6m3Vl2jXr.HXy7/7Y.O', 'IT', 'Technician', 'TECHNICIAN', TRUE);
 
--- Languages
-INSERT INTO languages (name, code) VALUES
-                                       ('English', 'EN'),
-                                       ('French', 'FR'),
-                                       ('Arabic', 'AR'),
-                                       ('Spanish', 'ES'),
-                                       ('German', 'DE');
+-- Insert 10 sample languages with comprehensive data
+INSERT INTO languages (
+    name, native_name, iso_639_1, iso_639_2, locale_code, charset,
+    flag_url, flag_path, is_rtl, is_active, is_default, is_admin_enabled,
+    is_guest_enabled, display_order, font_family, currency_code, currency_symbol,
+    date_format, time_format, number_format, decimal_separator, thousands_separator,
+    ui_translation_progress, channel_translation_progress, epg_translation_enabled,
+    welcome_message, created_at, updated_at, created_by, last_modified_by
+) VALUES
+      (
+          'English', 'English', 'en', 'eng', 'en-US', 'UTF-8',
+          'https://flags.example.com/us.svg', '/assets/flags/us.svg', 0, 1, 1, 1,
+          1, 1, 'Arial, sans-serif', 'USD', '$',
+          'MM/dd/yyyy', 'hh:mm a', '#,##0.00', '.', ',',
+          100, 95, 1,
+          'Welcome to our hotel entertainment system!', NOW(), NOW(), 'system', 'system'
+      ),
+      (
+          'Arabic', 'العربية', 'ar', 'ara', 'ar-SA', 'UTF-8',
+          'https://flags.example.com/sa.svg', '/assets/flags/sa.svg', 1, 1, 0, 1,
+          1, 2, 'Arial, Noto Sans Arabic', 'SAR', 'ر.س',
+          'yyyy/MM/dd', 'HH:mm', '#,##0.00', '.', ',',
+          98, 90, 1,
+          'مرحباً بكم في نظام الترفيه بالفندق!', NOW(), NOW(), 'system', 'system'
+      ),
+      (
+          'French', 'Français', 'fr', 'fra', 'fr-FR', 'UTF-8',
+          'https://flags.example.com/fr.svg', '/assets/flags/fr.svg', 0, 1, 0, 1,
+          1, 3, 'Arial, sans-serif', 'EUR', '€',
+          'dd/MM/yyyy', 'HH:mm', '# ##0,00', ',', ' ',
+          100, 88, 1,
+          'Bienvenue dans notre système de divertissement hôtelier!', NOW(), NOW(), 'system', 'system'
+      ),
+      (
+          'Spanish', 'Español', 'es', 'spa', 'es-ES', 'UTF-8',
+          'https://flags.example.com/es.svg', '/assets/flags/es.svg', 0, 1, 0, 1,
+          1, 4, 'Arial, sans-serif', 'EUR', '€',
+          'dd/MM/yyyy', 'HH:mm', '#,##0.00', ',', '.',
+          95, 85, 1,
+          '¡Bienvenido a nuestro sistema de entretenimiento hotelero!', NOW(), NOW(), 'system', 'system'
+      ),
+      (
+          'German', 'Deutsch', 'de', 'deu', 'de-DE', 'UTF-8',
+          'https://flags.example.com/de.svg', '/assets/flags/de.svg', 0, 1, 0, 1,
+          1, 5, 'Arial, sans-serif', 'EUR', '€',
+          'dd.MM.yyyy', 'HH:mm', '#.##0,00', ',', '.',
+          92, 80, 1,
+          'Willkommen in unserem Hotel-Unterhaltungssystem!', NOW(), NOW(), 'system', 'system'
+      ),
+      (
+          'Chinese', '中文', 'zh', 'zho', 'zh-CN', 'UTF-8',
+          'https://flags.example.com/cn.svg', '/assets/flags/cn.svg', 0, 1, 0, 1,
+          1, 6, 'Microsoft YaHei, Noto Sans SC', 'CNY', '¥',
+          'yyyy-MM-dd', 'HH:mm', '#,##0.00', '.', ',',
+          85, 75, 0,
+          '欢迎使用我们的酒店娱乐系统!', NOW(), NOW(), 'system', 'system'
+      ),
+      (
+          'Russian', 'Русский', 'ru', 'rus', 'ru-RU', 'UTF-8',
+          'https://flags.example.com/ru.svg', '/assets/flags/ru.svg', 0, 1, 0, 1,
+          1, 7, 'Arial, sans-serif', 'RUB', '₽',
+          'dd.MM.yyyy', 'HH:mm', '# ##0,00', ',', ' ',
+          90, 78, 1,
+          'Добро пожаловать в нашу гостиничную развлекательную систему!', NOW(), NOW(), 'system', 'system'
+      ),
+      (
+          'Italian', 'Italiano', 'it', 'ita', 'it-IT', 'UTF-8',
+          'https://flags.example.com/it.svg', '/assets/flags/it.svg', 0, 1, 0, 1,
+          1, 8, 'Arial, sans-serif', 'EUR', '€',
+          'dd/MM/yyyy', 'HH:mm', '#.##0,00', ',', '.',
+          88, 72, 0,
+          'Benvenuto nel nostro sistema di intrattenimento alberghiero!', NOW(), NOW(), 'system', 'system'
+      ),
+      (
+          'Portuguese', 'Português', 'pt', 'por', 'pt-PT', 'UTF-8',
+          'https://flags.example.com/pt.svg', '/assets/flags/pt.svg', 0, 1, 0, 1,
+          1, 9, 'Arial, sans-serif', 'EUR', '€',
+          'dd-MM-yyyy', 'HH:mm', '# ##0,00', ',', ' ',
+          82, 68, 0,
+          'Bem-vindo ao nosso sistema de entretenimento hoteleiro!', NOW(), NOW(), 'system', 'system'
+      ),
+      (
+          'Japanese', '日本語', 'ja', 'jpn', 'ja-JP', 'UTF-8',
+          'https://flags.example.com/jp.svg', '/assets/flags/jp.svg', 0, 1, 0, 1,
+          0, 10, 'Hiragino Sans, Meiryo', 'JPY', '¥',
+          'yyyy/MM/dd', 'HH:mm', '#,##0', '.', ',',
+          75, 60, 0,
+          'ホテルエンターテインメントシステムへようこそ！', NOW(), NOW(), 'system', 'system'
+      );
+
+-- Insert supported platforms for the languages
+INSERT INTO language_supported_platforms (language_id, platform) VALUES
+-- English (supports all platforms)
+(1, 'TIZEN'), (1, 'WEBOS'), (1, 'ANDROID'), (1, 'WEB'), (1, 'IOS'),
+-- Arabic (supports all platforms)
+(2, 'TIZEN'), (2, 'WEBOS'), (2, 'ANDROID'), (2, 'WEB'), (2, 'IOS'),
+-- French (supports all platforms)
+(3, 'TIZEN'), (3, 'WEBOS'), (3, 'ANDROID'), (3, 'WEB'), (3, 'IOS'),
+-- Spanish (supports all platforms)
+(4, 'TIZEN'), (4, 'WEBOS'), (4, 'ANDROID'), (4, 'WEB'), (4, 'IOS'),
+-- German (supports all platforms)
+(5, 'TIZEN'), (5, 'WEBOS'), (5, 'ANDROID'), (5, 'WEB'), (5, 'IOS'),
+-- Chinese (supports web and mobile)
+(6, 'ANDROID'), (6, 'WEB'), (6, 'IOS'),
+-- Russian (supports all platforms)
+(7, 'TIZEN'), (7, 'WEBOS'), (7, 'ANDROID'), (7, 'WEB'), (7, 'IOS'),
+-- Italian (supports web and mobile)
+(8, 'ANDROID'), (8, 'WEB'), (8, 'IOS'),
+-- Portuguese (supports web only)
+(9, 'WEB'),
+-- Japanese (supports web only - still in development)
+(10, 'WEB');
 
 -- TV Channel Categories
 INSERT INTO tv_channel_categories (name, description, icon_url) VALUES
@@ -300,4 +492,12 @@ INSERT INTO tv_channel_categories (name, description, icon_url) VALUES
 INSERT INTO tv_channels (channel_number, name, description, ip, port, category_id, language_id) VALUES
                                                                                                     (101, 'CNN International', 'International news channel', '192.168.1.100', 8001, 1, 1),
                                                                                                     (102, 'BBC World News', 'British international news channel', '192.168.1.101', 8002, 1, 1),
-                                                                                                    (103, 'Al Jazeera English', 'Qatari international news channel', '192.168.1.102', 8003, 1, 1);
+                                                                                                    (103, 'Al Jazeera English', 'Qatari international news channel', '192.168.1.102', 8003, 1, 1),
+                                                                                                    (201, 'ESPN', 'Sports channel', '192.168.1.103', 8004, 2, 1),
+                                                                                                    (202, 'beIN Sports', 'International sports channel', '192.168.1.104', 8005, 2, 1),
+                                                                                                    (301, 'HBO', 'Entertainment channel', '192.168.1.105', 8006, 3, 1),
+                                                                                                    (302, 'Netflix', 'Streaming entertainment', '192.168.1.106', 8007, 3, 1);
+
+-- ===================================================================
+-- MIGRATION COMPLETE
+-- ===================================================================

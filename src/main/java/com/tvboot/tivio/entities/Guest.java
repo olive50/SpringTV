@@ -96,6 +96,12 @@ public class Guest {
     public enum Gender {
         MALE, FEMALE, OTHER
     }
+    /*
+     `date_checkin` datetime NOT NULL default '0000-00-00 00:00:00',
+            `date_checkout` datetime NOT NULL default '0000-00-00 00:00:00',
+            `ID_langue` int(11) NOT NULL default '0',
+            `f_tv_rights` tinytext NOT NULL,
+            `f_departure_date` datetime NOT NULL default '0000-00-00 00:00:00',*/
 
     public enum LoyaltyLevel {
         BRONZE, SILVER, GOLD, PLATINUM, DIAMOND

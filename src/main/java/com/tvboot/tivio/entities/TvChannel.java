@@ -1,8 +1,13 @@
 package com.tvboot.tivio.entities;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.tvboot.tivio.language.Language;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,7 +18,7 @@ import java.util.List;
 @NoArgsConstructor
 @Entity
 @Table(name = "tv_channels")
-public class TvChannel {
+public class TvChannel  {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -42,10 +47,25 @@ public class TvChannel {
     @JoinColumn(name = "language_id")
     private Language language;
 
-    @Column(name = "logo")
+    @Column(name = "logo_url")
     private String logoUrl;
+    @Column(name = "logo_path")
+    private String logoPath;
+
+    @CreationTimestamp
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "channel", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<EpgEntry> epg = new ArrayList<>();
+
+    @Column(name = "is_active")
+    private boolean active;
+//    @Column(name = "is_available")
+//    private boolean available;
 }

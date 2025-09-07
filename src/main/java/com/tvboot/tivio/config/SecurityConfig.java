@@ -52,8 +52,14 @@ public class SecurityConfig {
             "/v3/api-docs.yaml",
             "/swagger-resources/**",
             "/webjars/**",
+
+
             // tomporaire kan for test
-            "/api/channels/**"
+
+            "/api/hotel/**",
+            "/api/channels/**",
+            "/api/languages/**"
+
     };
 
     // Admin-only endpoints

@@ -14,9 +14,13 @@ public class TvChannelDTO {
     private String description;
     private String ip;
     private int port;
+    private String streamUrl;
+    private String logoPath;
     private String logoUrl;
+
+    private boolean active;
     private CategoryDTO category;
-    private LanguageDTO language;
+    private TvLanguageDTO language;
 
     @Getter
     @Setter
@@ -35,7 +39,7 @@ public class TvChannelDTO {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class LanguageDTO {
+    public static class TvLanguageDTO {
         private Long id;
         private String name;
         private String code;

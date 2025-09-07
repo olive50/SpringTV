@@ -1,24 +1,20 @@
 package com.tvboot.tivio.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tvboot.tivio.audit.Auditable;
-import com.tvboot.tivio.dto.*;
+import com.tvboot.tivio.dto.TvChannelCreateDTO;
+import com.tvboot.tivio.dto.TvChannelDTO;
+import com.tvboot.tivio.dto.TvChannelStatsDTO;
+import com.tvboot.tivio.dto.TvChannelUpdateDTO;
 import com.tvboot.tivio.service.TvChannelService;
+import com.tvboot.tivio.service.TvChannelService2;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,12 +25,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @Tag(name = "Chaînes TV", description = "Gestion des chaînes de télévision")
 @RestController
@@ -46,6 +39,7 @@ import java.util.Set;
 public class TvChannelController {
 
     private final TvChannelService tvChannelService;
+    private final TvChannelService2 tvChannelService2;
     @Autowired
     private Validator validator;
 
@@ -142,6 +136,7 @@ public class TvChannelController {
             summary = "Créer une chaîne avec un logo",
             description = "Crée une nouvelle chaîne TV et télécharge son logo en même temps"
     )
+    /*
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Chaîne créée avec succès"),
             @ApiResponse(responseCode = "400", description = "Données invalides"),
@@ -212,167 +207,38 @@ public class TvChannelController {
         }
     }
 
-    @PostMapping("/create-with-logo")
-    public ResponseEntity<?> createChannelWithLogoForm(
-            @RequestParam("name") String name,
-            @RequestParam("number") Integer number,
-            @RequestParam("port") Integer port,
-            @RequestParam("categoryId") Long category,
-            @RequestParam("languageId") Long language,
-            @RequestParam("ip") String streamUrl,
-            @RequestParam(value = "description", required = false) String description,
-            @RequestParam(value = "isActive", defaultValue = "true") Boolean isActive,
-            @RequestParam(value = "quality", required = false) String quality,
 
-            @RequestPart("logoFile") MultipartFile logoFile) {
+*/
 
-        log.info("Received request to create TV channel with logo: {}", name);
-        log.info("Channel parameters - Number: {}, Category: {}, StreamUrl: {}", number, category, streamUrl);
-        log.info("Logo file: {}, Size: {} bytes", logoFile.getOriginalFilename(), logoFile.getSize());
-
-        try {
-            // Validation des paramètres obligatoires
-            if (name == null || name.trim().isEmpty()) {
-                log.error("Channel name is null or empty");
-                return ResponseEntity.badRequest().body(createErrorResponse("VALIDATION_ERROR",
-                        "Channel name is required"));
-            }
-
-            if (number == null) {
-                log.error("Channel number is null");
-                return ResponseEntity.badRequest().body(createErrorResponse("VALIDATION_ERROR",
-                        "Channel number is required"));
-            }
-
-
-
-//            if (streamUrl == null || streamUrl.trim().isEmpty()) {
-//                log.error("Stream URL is null or empty");
-//                return ResponseEntity.badRequest().body(createErrorResponse("VALIDATION_ERROR",
-//                        "Stream URL is required"));
-//            }
-
-            // Validation du numéro de chaîne
-            if (number <= 0) {
-                log.error("Invalid channel number: {}", number);
-                return ResponseEntity.badRequest().body(createErrorResponse("VALIDATION_ERROR",
-                        "Channel number must be positive"));
-            }
-
-//            // Validation de l'URL de stream (format basique)
-//            if (!streamUrl.startsWith("http://") && !streamUrl.startsWith("https://")) {
-//                log.error("Invalid stream URL format: {}", streamUrl);
-//                return ResponseEntity.badRequest().body(createErrorResponse("VALIDATION_ERROR",
-//                        "Stream URL must start with http:// or https://"));
-//            }
-//
-//            // Validation de la catégorie (optionnel: liste prédéfinie)
-//            Set<String> validCategories = Set.of("GENERAL", "SPORT", "NEWS", "ENTERTAINMENT",
-//                    "DOCUMENTARY", "CHILDREN", "MUSIC", "MOVIES");
-//            if (!validCategories.contains(category)) {
-//                log.warn("Unknown category: {}. Using as-is.", category);
-//            }
-
-            // Validation du fichier logo
-            if (logoFile.isEmpty()) {
-                log.warn("Logo file is empty for channel: {}", name);
-                return ResponseEntity.badRequest().body(createErrorResponse("EMPTY_LOGO_FILE",
-                        "Logo file is empty"));
-            }
-
-            // Validation du type de fichier
-            String contentType = logoFile.getContentType();
-            if (contentType == null || !contentType.startsWith("image/")) {
-                log.warn("Invalid file type for logo: {} (content-type: {})",
-                        logoFile.getOriginalFilename(), contentType);
-                return ResponseEntity.badRequest().body(createErrorResponse("INVALID_FILE_TYPE",
-                        "Invalid file type. Only image files are supported."));
-            }
-
-            // Validation de la taille du fichier (max 5MB)
-            long maxFileSize = 5 * 1024 * 1024; // 5MB
-            if (logoFile.getSize() > maxFileSize) {
-                log.warn("Logo file too large: {} bytes (max: {} bytes)",
-                        logoFile.getSize(), maxFileSize);
-                return ResponseEntity.badRequest().body(createErrorResponse("FILE_TOO_LARGE",
-                        "Logo file is too large. Maximum size is 5MB."));
-            }
-
-            // Créer le DTO à partir des paramètres
-            TvChannelCreateDTO createDTO = new TvChannelCreateDTO();
-            createDTO.setName(name.trim());
-            createDTO.setChannelNumber(number);
-            createDTO.setCategoryId(category);
-            createDTO.setIp(streamUrl.trim());
-            createDTO.setDescription(description != null ? description.trim() : null);
-
-            createDTO.setLanguageId(language);
-
-
-            log.info("Created DTO for channel: {}", createDTO.getName());
-
-            // Validation supplémentaire avec le validator (si vous avez des annotations @Valid dans le DTO)
-            Set<ConstraintViolation<TvChannelCreateDTO>> violations = validator.validate(createDTO);
-            if (!violations.isEmpty()) {
-                StringBuilder errorMessage = new StringBuilder("Validation errors: ");
-                for (ConstraintViolation<TvChannelCreateDTO> violation : violations) {
-                    errorMessage.append(violation.getPropertyPath())
-                            .append(" ")
-                            .append(violation.getMessage())
-                            .append("; ");
-                }
-                log.error("DTO validation failed: {}", errorMessage.toString());
-                return ResponseEntity.badRequest().body(createErrorResponse("VALIDATION_ERROR",
-                        errorMessage.toString()));
-            }
-
-            // Créer la chaîne avec le logo
-            TvChannelDTO createdChannel = tvChannelService.createChannelWithLogo(createDTO, logoFile);
-            log.info("Successfully created TV channel with logo - ID: {}, Name: {}, Logo: {}",
-                    createdChannel.getId(), createdChannel.getName(), createdChannel.getLogoUrl());
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdChannel);
-
-        } catch (IOException e) {
-            log.error("I/O error creating channel with logo: {}", name, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("LOGO_UPLOAD_IO_ERROR",
-                            "Failed to upload logo due to I/O error: " + e.getMessage()));
-
-        } catch (IllegalArgumentException e) {
-            log.error("Invalid argument for channel creation: {}", name, e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(createErrorResponse("INVALID_ARGUMENT",
-                            "Invalid argument: " + e.getMessage()));
-
-        } catch (DataIntegrityViolationException e) {
-            log.error("Database constraint violation during channel creation: {}", name, e);
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(createErrorResponse("DUPLICATE_CHANNEL",
-                            "Channel with this name or number already exists"));
-
-        } catch (Exception e) {
-            log.error("Unexpected error creating channel with logo: {}", name, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("CHANNEL_CREATION_ERROR",
-                            "Failed to create channel: " + e.getMessage()));
-        }
+    // CREATE - With Logo
+    @PostMapping(path = "/with-logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<TvChannelDTO> createChannelWithLogo(
+            @RequestPart("channel") @Valid TvChannelCreateDTO createDTO,
+            @RequestPart("logo") MultipartFile logoFile) {
+        TvChannelDTO created = tvChannelService.createChannelWithLogo(createDTO, logoFile);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
 
+    @Operation(summary = "Modifier une chaîne")
+    @PutMapping("/{id}")
+    @Auditable(action = "UPDATE_CHANNEL", resource = "TV_CHANNEL", logParams = true)
+    public ResponseEntity<TvChannelDTO> updateChannel(
+            @PathVariable Long id,
+            @Valid @RequestBody TvChannelUpdateDTO updateDTO) {
 
+        log.info("Received request to update TV channel with ID: {}", id);
 
+        try {
+            TvChannelDTO updatedChannel = tvChannelService.updateChannel(id, updateDTO);
+            log.info("Successfully updated TV channel: {}", updatedChannel.getName());
+            return ResponseEntity.ok(updatedChannel);
 
-
-    // Ou si vous préférez injecter directement le ValidatorFactory
-/*
-private final Validator validator;
-
-@Autowired
-public TvChannelController(ValidatorFactory validatorFactory) {
-    this.validator = validatorFactory.getValidator();
-}
-*/
+        } catch (Exception e) {
+            log.error("Failed to update TV channel with ID: {}", id, e);
+            throw e;
+        }
+    }
     @Operation(summary = "Supprimer une chaîne")
     @DeleteMapping("/{id}")
     @Auditable(action = "DELETE_CHANNEL", resource = "TV_CHANNEL")
@@ -390,6 +256,8 @@ public TvChannelController(ValidatorFactory validatorFactory) {
         }
     }
 
+
+
     /**
      * Méthode utilitaire pour créer une réponse d'erreur standardisée
      */
@@ -400,4 +268,24 @@ public TvChannelController(ValidatorFactory validatorFactory) {
         errorResponse.put("timestamp", System.currentTimeMillis());
         return errorResponse;
     }
+
+    /**
+     * Get channel statistics
+     */
+    @GetMapping("/stats")
+    public ResponseEntity<TvChannelStatsDTO> getChannelStats() {
+        TvChannelStatsDTO stats = tvChannelService.getChannelStatistics();
+        return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * Get detailed statistics (includes zero counts)
+     */
+    @GetMapping("/stats/detailed")
+    public ResponseEntity<TvChannelStatsDTO> getDetailedStats() {
+        TvChannelStatsDTO stats = tvChannelService.getDetailedStatistics();
+        return ResponseEntity.ok(stats);
+    }
+
+
 }

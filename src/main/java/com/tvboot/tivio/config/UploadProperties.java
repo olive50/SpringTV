@@ -10,9 +10,6 @@ import java.util.List;
 @Configuration
 @ConfigurationProperties(prefix = "app.upload")
 public class UploadProperties {
-
-    private Logos logos = new Logos();
-
     @Data
     public static class Logos {
         private String path = "uploads/logos/channels/";
@@ -25,4 +22,9 @@ public class UploadProperties {
                 "image/webp"
         );
     }
+
+    private Logos logos = new Logos();
+
+
+
 }
