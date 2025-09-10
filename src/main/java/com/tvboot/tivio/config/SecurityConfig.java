@@ -58,7 +58,10 @@ public class SecurityConfig {
 
             "/api/hotel/**",
             "/api/channels/**",
-            "/api/languages/**"
+            "/api/languages/**",
+            "/api/terminals/**",
+            "/api/rooms/**",
+            "/api/guests/**"
 
     };
 

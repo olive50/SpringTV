@@ -1,8 +1,10 @@
 package com.tvboot.tivio.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.tvboot.tivio.room.Room;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;

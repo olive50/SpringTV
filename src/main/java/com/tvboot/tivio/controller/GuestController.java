@@ -1,6 +1,6 @@
 package com.tvboot.tivio.controller;
 
-import com.tvboot.tivio.entities.Guest;
+import com.tvboot.tivio.guest.Guest;
 import com.tvboot.tivio.service.GuestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

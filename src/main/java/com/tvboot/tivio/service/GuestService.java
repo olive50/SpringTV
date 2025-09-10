@@ -1,6 +1,6 @@
 package com.tvboot.tivio.service;
 
-import com.tvboot.tivio.entities.Guest;
+import com.tvboot.tivio.guest.Guest;
 import com.tvboot.tivio.repository.GuestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

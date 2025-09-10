@@ -1,7 +1,10 @@
 package com.tvboot.tivio.entities;
 
+import com.tvboot.tivio.guest.Guest;
+import com.tvboot.tivio.room.Room;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 

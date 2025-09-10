@@ -187,30 +187,70 @@ CREATE TABLE package_channels (
 -- HOTEL MANAGEMENT
 -- ===================================================================
 
+-- Create rooms table
 CREATE TABLE rooms (
                        id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                       room_number VARCHAR(20) NOT NULL UNIQUE,
-                       room_type ENUM('STANDARD', 'DELUXE', 'SUITE', 'JUNIOR_SUITE', 'PRESIDENTIAL_SUITE', 'FAMILY_ROOM', 'SINGLE', 'DOUBLE', 'TWIN') NOT NULL,
+                       room_number VARCHAR(50) NOT NULL UNIQUE,
+                       room_type VARCHAR(20) NOT NULL,
                        floor_number INT,
-                       building VARCHAR(50),
-                       max_occupancy INT DEFAULT 2,
-                       price_per_night DECIMAL(10,2) DEFAULT 0.00,
-                       status ENUM('AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'OUT_OF_ORDER', 'CLEANING') NOT NULL DEFAULT 'AVAILABLE',
+                       building VARCHAR(100),
+                       capacity INT,
+                       price_per_night DECIMAL(10,2),
+                       status VARCHAR(20) NOT NULL,
                        description TEXT,
-                       amenities JSON,
                        channel_package_id BIGINT,
-                       created_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6),
-                       updated_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+                       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                       CONSTRAINT fk_room_channel_package FOREIGN KEY (channel_package_id) REFERENCES channel_packages(id) ON DELETE SET NULL
+);
 
-                       CONSTRAINT fk_rooms_package FOREIGN KEY (channel_package_id) REFERENCES channel_packages(id) ON DELETE SET NULL ON UPDATE CASCADE,
+-- Create room_amenities table for the amenities collection
+CREATE TABLE room_amenities (
+                                room_id BIGINT NOT NULL,
+                                amenity VARCHAR(255) NOT NULL,
+                                PRIMARY KEY (room_id, amenity),
+                                CONSTRAINT fk_room_amenities_room FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+);
 
-                       INDEX idx_rooms_number (room_number),
-                       INDEX idx_rooms_type (room_type),
-                       INDEX idx_rooms_status (status),
-                       INDEX idx_rooms_floor (floor_number),
-                       INDEX idx_rooms_building (building),
-                       INDEX idx_rooms_package (channel_package_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Create indexes for better performance
+CREATE INDEX idx_room_status ON rooms(status);
+CREATE INDEX idx_room_type ON rooms(room_type);
+CREATE INDEX idx_room_floor ON rooms(floor_number);
+CREATE INDEX idx_room_number ON rooms(room_number);
+CREATE INDEX idx_room_building ON rooms(building);
+CREATE INDEX idx_room_capacity ON rooms(capacity);
+CREATE INDEX idx_room_price ON rooms(price_per_night);
+CREATE INDEX idx_room_created_at ON rooms(created_at);
+
+-- Insert sample data (optional - for development)
+INSERT INTO rooms (room_number, room_type, floor_number, building, capacity, price_per_night, status, description) VALUES
+                                                                                                                       ('101', 'STANDARD', 1, 'Main Building', 2, 89.99, 'AVAILABLE', 'Standard room with city view'),
+                                                                                                                       ('102', 'STANDARD', 1, 'Main Building', 2, 89.99, 'AVAILABLE', 'Standard room with garden view'),
+                                                                                                                       ('201', 'DELUXE', 2, 'Main Building', 3, 129.99, 'AVAILABLE', 'Deluxe room with balcony'),
+                                                                                                                       ('202', 'DELUXE', 2, 'Main Building', 3, 139.99, 'OCCUPIED', 'Deluxe room with ocean view'),
+                                                                                                                       ('301', 'SUITE', 3, 'Main Building', 4, 199.99, 'AVAILABLE', 'Executive suite with living room'),
+                                                                                                                       ('302', 'JUNIOR_SUITE', 3, 'Main Building', 3, 169.99, 'AVAILABLE', 'Junior suite with separate seating area'),
+                                                                                                                       ('401', 'PRESIDENTIAL_SUITE', 4, 'Main Building', 6, 399.99, 'AVAILABLE', 'Presidential suite with panoramic views'),
+                                                                                                                       ('501', 'FAMILY_ROOM', 5, 'Main Building', 5, 159.99, 'MAINTENANCE', 'Family room with extra beds'),
+                                                                                                                       ('103', 'SINGLE', 1, 'Annex Building', 1, 69.99, 'AVAILABLE', 'Single room for solo travelers'),
+                                                                                                                       ('104', 'DOUBLE', 1, 'Annex Building', 2, 79.99, 'CLEANING', 'Double room with queen bed'),
+                                                                                                                       ('105', 'TWIN', 1, 'Annex Building', 2, 79.99, 'AVAILABLE', 'Twin room with two single beds'),
+                                                                                                                       ('203', 'DELUXE', 2, 'Annex Building', 3, 119.99, 'OUT_OF_ORDER', 'Deluxe room currently under renovation');
+
+-- Insert sample amenities
+INSERT INTO room_amenities (room_id, amenity) VALUES
+                                                  (1, 'WiFi'), (1, 'TV'), (1, 'Air Conditioning'), (1, 'Mini Bar'),
+                                                  (2, 'WiFi'), (2, 'TV'), (2, 'Air Conditioning'),
+                                                  (3, 'WiFi'), (3, 'Smart TV'), (3, 'Air Conditioning'), (3, 'Mini Bar'), (3, 'Balcony'), (3, 'Coffee Maker'),
+                                                  (4, 'WiFi'), (4, 'Smart TV'), (4, 'Air Conditioning'), (4, 'Mini Bar'), (4, 'Ocean View'), (4, 'Coffee Maker'),
+                                                  (5, 'WiFi'), (5, 'Smart TV'), (5, 'Air Conditioning'), (5, 'Mini Bar'), (5, 'Living Room'), (5, 'Kitchenette'), (5, 'Jacuzzi'),
+                                                  (6, 'WiFi'), (6, 'Smart TV'), (6, 'Air Conditioning'), (6, 'Mini Bar'), (6, 'Seating Area'),
+                                                  (7, 'WiFi'), (7, 'Multiple Smart TVs'), (7, 'Air Conditioning'), (7, 'Full Bar'), (7, 'Dining Room'), (7, 'Kitchen'), (7, 'Jacuzzi'), (7, 'Private Balcony'),
+                                                  (8, 'WiFi'), (8, 'TV'), (8, 'Air Conditioning'), (8, 'Extra Beds'), (8, 'Refrigerator'),
+                                                  (9, 'WiFi'), (9, 'TV'), (9, 'Air Conditioning'),
+                                                  (10, 'WiFi'), (10, 'TV'), (10, 'Air Conditioning'),
+                                                  (11, 'WiFi'), (11, 'TV'), (11, 'Air Conditioning'),
+                                                  (12, 'WiFi'), (12, 'TV'), (12, 'Air Conditioning');
 
 CREATE TABLE guests (
                         id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -278,39 +318,58 @@ CREATE TABLE reservations (
 -- ===================================================================
 -- TERMINAL & DEVICE MANAGEMENT
 -- ===================================================================
-
+-- Create terminals table
 CREATE TABLE terminals (
                            id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                           terminal_id VARCHAR(50) NOT NULL UNIQUE,
-                           device_type ENUM('SET_TOP_BOX', 'SMART_TV', 'DESKTOP_PC', 'TABLET', 'MOBILE', 'DISPLAY_SCREEN', 'PROJECTOR') NOT NULL,
-                           brand VARCHAR(50),
-                           model VARCHAR(100),
-                           mac_address VARCHAR(17) UNIQUE,
-                           ip_address VARCHAR(45),
-                           firmware_version VARCHAR(50),
-                           status ENUM('ACTIVE', 'INACTIVE', 'MAINTENANCE', 'OFFLINE', 'FAULTY') NOT NULL DEFAULT 'ACTIVE',
-                           location VARCHAR(100),
-                           serial_number VARCHAR(100) UNIQUE,
-                           purchase_date DATETIME(6),
-                           warranty_expiry DATETIME(6),
-                           last_seen DATETIME(6),
-                           notes TEXT,
+                           terminal_id VARCHAR(100) NOT NULL UNIQUE,
+                           device_type VARCHAR(50) NOT NULL,
+                           brand VARCHAR(100) NOT NULL,
+                           model VARCHAR(100) NOT NULL,
+                           mac_address VARCHAR(17) NOT NULL UNIQUE,
+                           ip_address VARCHAR(45) NOT NULL,
+                           status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+                           location VARCHAR(200) NOT NULL,
                            room_id BIGINT,
-                           created_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6),
-                           updated_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+                           last_seen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                           firmware_version VARCHAR(50),
+                           serial_number VARCHAR(100),
+                           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                           updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                           response_time INT,
+                           uptime DOUBLE,
+                           last_ping_time TIMESTAMP,
+                           is_online BOOLEAN DEFAULT FALSE,
+                           CONSTRAINT fk_terminal_room FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE SET NULL
+);
 
-                           CONSTRAINT fk_terminals_room FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE SET NULL ON UPDATE CASCADE,
+-- Create indexes for better performance
+CREATE INDEX idx_terminal_id ON terminals(terminal_id);
+CREATE INDEX idx_terminal_mac ON terminals(mac_address);
+CREATE INDEX idx_terminal_ip ON terminals(ip_address);
+CREATE INDEX idx_terminal_status ON terminals(status);
+CREATE INDEX idx_terminal_device_type ON terminals(device_type);
+CREATE INDEX idx_terminal_room ON terminals(room_id);
+CREATE INDEX idx_terminal_online ON terminals(is_online);
+CREATE INDEX idx_terminal_last_seen ON terminals(last_seen);
+CREATE INDEX idx_terminal_created_at ON terminals(created_at);
 
-                           INDEX idx_terminals_terminal_id (terminal_id),
-                           INDEX idx_terminals_device_type (device_type),
-                           INDEX idx_terminals_status (status),
-                           INDEX idx_terminals_mac_address (mac_address),
-                           INDEX idx_terminals_serial (serial_number),
-                           INDEX idx_terminals_room (room_id),
-                           INDEX idx_terminals_last_seen (last_seen),
-                           INDEX idx_terminals_warranty (warranty_expiry)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
+-- Insert sample data (optional - for development)
+INSERT INTO terminals (terminal_id, device_type, brand, model, mac_address, ip_address, status, location, room_id, firmware_version, serial_number, is_online, response_time, uptime) VALUES
+                                                                                                                                                                                          ('TIVIO-001', 'SMART_TV', 'Samsung', 'QN65Q80AAFXZA', '00:1A:2B:3C:4D:5E', '192.168.1.101', 'ACTIVE', 'Main Building - Lobby', NULL, 'v2.1.5', 'SN1234567890', TRUE, 45, 99.80),
+                                                                                                                                                                                          ('TIVIO-002', 'SMART_TV', 'LG', 'OLED65C1PUB', '00:1B:2C:3D:4E:5F', '192.168.1.102', 'ACTIVE', 'Main Building - Conference Room', NULL, 'v3.0.2', 'SN0987654321', TRUE, 38, 99.90),
+                                                                                                                                                                                          ('TIVIO-003', 'ANDROID_BOX', 'NVIDIA', 'Shield TV Pro', '00:1C:2D:3E:4F:5A', '192.168.1.103', 'ACTIVE', 'Room 101 - Main Building', 1, 'v8.2.3', 'SN1122334455', TRUE, 25, 99.50),
+                                                                                                                                                                                          ('TIVIO-004', 'ANDROID_BOX', 'Xiaomi', 'Mi Box S', '00:1D:2E:3F:4A:5B', '192.168.1.104', 'ACTIVE', 'Room 102 - Main Building', 2, 'v9.0.1', 'SN5566778899', TRUE, 32, 98.70),
+                                                                                                                                                                                          ('TIVIO-005', 'SMART_TV', 'Sony', 'XBR-65X90J', '00:1E:2F:3A:4B:5C', '192.168.1.105', 'ACTIVE', 'Room 201 - Main Building', 3, 'v2.5.1', 'SN6677889900', TRUE, 41, 99.20),
+                                                                                                                                                                                          ('TIVIO-006', 'SMART_TV', 'Samsung', 'UN65AU8000FXZA', '00:1F:2A:3B:4C:5D', '192.168.1.106', 'MAINTENANCE', 'Room 202 - Main Building', 4, 'v1.8.7', 'SN2233445566', FALSE, NULL, 85.3),
+                                                                                                                                                                                          ('TIVIO-007', 'ANDROID_BOX', 'Amazon', 'Fire TV Cube', '00:1A:2B:3C:4D:6E', '192.168.1.107', 'ACTIVE', 'Room 301 - Main Building', 5, 'v7.6.4', 'SN3344556677', TRUE, 29, 97.80),
+                                                                                                                                                                                          ('TIVIO-008', 'SMART_TV', 'LG', 'NANO75UQA', '00:1B:2C:3D:4E:6F', '192.168.1.108', 'ACTIVE', 'Room 302 - Main Building', 6, 'v4.2.0', 'SN4455667788', TRUE, 36, 99.1),
+                                                                                                                                                                                          ('TIVIO-009', 'SMART_TV', 'TCL', '65R635', '00:1C:2D:3E:4F:6A', '192.168.1.109', 'INACTIVE', 'Storage Room', NULL, 'v3.5.2', 'SN5566778890', FALSE, NULL, NULL),
+                                                                                                                                                                                          ('TIVIO-010', 'ANDROID_BOX', 'Formuler', 'Z10 Pro Max', '00:1D:2E:3F:4A:6B', '192.168.1.110', 'ACTIVE', 'Room 401 - Main Building', 7, 'v10.1.3', 'SN6677889901', TRUE, 22, 99.70),
+                                                                                                                                                                                          ('TIVIO-011', 'SMART_TV', 'Hisense', '65U8G', '00:1E:2F:3A:4B:6C', '192.168.1.111', 'ACTIVE', 'Room 501 - Main Building', 8, 'v2.9.4', 'SN7788990012', TRUE, 47, 96.50),
+                                                                                                                                                                                          ('TIVIO-012', 'ANDROID_BOX', 'BuzzTV', 'XRS4500', '00:1F:2A:3B:4C:6D', '192.168.1.112', 'ACTIVE', 'Room 103 - Annex Building', 9, 'v5.3.1', 'SN8899001123', TRUE, 31, 98.90),
+                                                                                                                                                                                          ('TIVIO-013', 'SMART_TV', 'Vizio', 'M65Q7-J03', '00:1A:2B:3C:4D:7E', '192.168.1.113', 'ACTIVE', 'Room 104 - Annex Building', 10, 'v3.7.8', 'SN9900112234', TRUE, 39, 97.20),
+                                                                                                                                                                                          ('TIVIO-014', 'ANDROID_BOX', 'Mag', '424', '00:1B:2C:3D:4E:7F', '192.168.1.114', 'MAINTENANCE', 'IT Department', NULL, 'v1.2.3', 'SN0011223345', FALSE, NULL, NULL),
+                                                                                                                                                                                          ('TIVIO-015', 'SMART_TV', 'Panasonic', 'TC-65LX600U', '00:1C:2D:3E:4F:7A', '192.168.1.115', 'ACTIVE', 'Room 105 - Annex Building', 11, 'v2.4.6', 'SN1122334456', TRUE, 43, 98.40);
 CREATE TABLE terminal_channel_assignments (
                                               id BIGINT PRIMARY KEY AUTO_INCREMENT,
                                               terminal_id BIGINT NOT NULL,
@@ -477,6 +536,63 @@ INSERT INTO language_supported_platforms (language_id, platform) VALUES
 (9, 'WEB'),
 -- Japanese (supports web only - still in development)
 (10, 'WEB');
+
+CREATE TABLE translations (
+                              id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+
+    -- Foreign key to the languages table
+                              language_id BIGINT UNSIGNED NOT NULL,
+
+                              message_key VARCHAR(255) NOT NULL COMMENT 'The translation key (e.g., welcome_header, button_play)',
+                              message_value TEXT NOT NULL COMMENT 'The translated text',
+
+    -- Auditing fields (matching your Language table structure)
+                              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                              created_by VARCHAR(100) NULL,
+                              updated_by VARCHAR(100) NULL,
+
+    -- Foreign key constraint
+                              CONSTRAINT fk_translation_language
+                                  FOREIGN KEY (language_id)
+                                      REFERENCES languages (id)
+                                      ON DELETE CASCADE
+                                      ON UPDATE CASCADE,
+
+    -- Ensure we don't have duplicate keys for the same language
+                              UNIQUE KEY uq_translation_language_key (language_id, message_key),
+
+    -- Indexes for performance
+                              KEY idx_translation_language_id (language_id),
+                              KEY idx_translation_message_key (message_key),
+                              KEY idx_translation_updated_at (updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Stores translations linked to languages';
+
+-- Insert translations for English (assuming language ID 1)
+INSERT INTO translations (language_id, message_key, message_value) VALUES
+                                                                       (1, 'welcome', 'Welcome to My IPTV'),
+                                                                       (1, 'live_tv', 'Live TV'),
+                                                                       (1, 'movies', 'Movies'),
+                                                                       (1, 'settings', 'Settings'),
+                                                                       (1, 'description', 'Your favorite channels in one place.');
+
+-- Insert translations for French (assuming language ID 2)
+INSERT INTO translations (language_id, message_key, message_value) VALUES
+                                                                       (2, 'welcome', 'Bienvenue sur Mon IPTV'),
+                                                                       (2, 'live_tv', 'TV en Direct'),
+                                                                       (2, 'movies', 'Films'),
+                                                                       (2, 'settings', 'Paramètres'),
+                                                                       (2, 'description', 'Vos chaînes préférées en un seul endroit.');
+
+-- Insert translations for Spanish (assuming language ID 3)
+INSERT INTO translations (language_id, message_key, message_value) VALUES
+                                                                       (3, 'welcome', 'Bienvenido a Mi IPTV'),
+                                                                       (3, 'live_tv', 'TV en Vivo'),
+                                                                       (3, 'movies', 'Películas'),
+                                                                       (3, 'settings', 'Configuración'),
+                                                                       (3, 'description', 'Tus canales favoritos en un solo lugar.');
+
+
 
 -- TV Channel Categories
 INSERT INTO tv_channel_categories (name, description, icon_url) VALUES

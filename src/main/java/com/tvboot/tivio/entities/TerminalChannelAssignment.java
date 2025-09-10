@@ -1,7 +1,9 @@
 package com.tvboot.tivio.entities;
 
+import com.tvboot.tivio.terminal.Terminal;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Getter

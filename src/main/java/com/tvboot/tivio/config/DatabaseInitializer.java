@@ -1,15 +1,15 @@
 package com.tvboot.tivio.config;
 
-import com.tvboot.tivio.entities.Room;
 import com.tvboot.tivio.entities.TvChannel;
 import com.tvboot.tivio.entities.TvChannelCategory;
 import com.tvboot.tivio.entities.User;
 import com.tvboot.tivio.language.Language;
 import com.tvboot.tivio.language.LanguageRepository;
-import com.tvboot.tivio.repository.RoomRepository;
 import com.tvboot.tivio.repository.TvChannelCategoryRepository;
 import com.tvboot.tivio.repository.TvChannelRepository;
 import com.tvboot.tivio.repository.UserRepository;
+import com.tvboot.tivio.room.Room;
+import com.tvboot.tivio.room.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -458,6 +458,7 @@ public class DatabaseInitializer implements CommandLineRunner {
     /**
      * Initialize sample rooms with proper transaction management
      */
+
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void initializeSampleRoomsWithTransaction() {
         // Only create sample data in development
@@ -478,41 +479,179 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .roomType(Room.RoomType.STANDARD)
                                 .floorNumber(1)
                                 .building("Main Building")
-                                .maxOccupancy(2)
+                                .capacity(2)
                                 .pricePerNight(new BigDecimal("89.99"))
                                 .status(Room.RoomStatus.AVAILABLE)
                                 .description("Standard room with city view")
+                                .amenities(List.of("WiFi", "TV", "Air Conditioning", "Mini Bar"))
                                 .build(),
+
+                        Room.builder()
+                                .roomNumber("102")
+                                .roomType(Room.RoomType.STANDARD)
+                                .floorNumber(1)
+                                .building("Main Building")
+                                .capacity(2)
+                                .pricePerNight(new BigDecimal("89.99"))
+                                .status(Room.RoomStatus.AVAILABLE)
+                                .description("Standard room with garden view")
+                                .amenities(List.of("WiFi", "TV", "Air Conditioning"))
+                                .build(),
+
                         Room.builder()
                                 .roomNumber("201")
                                 .roomType(Room.RoomType.DELUXE)
                                 .floorNumber(2)
                                 .building("Main Building")
-                                .maxOccupancy(3)
+                                .capacity(3)
                                 .pricePerNight(new BigDecimal("129.99"))
                                 .status(Room.RoomStatus.AVAILABLE)
                                 .description("Deluxe room with balcony")
+                                .amenities(List.of("WiFi", "Smart TV", "Air Conditioning", "Mini Bar", "Balcony", "Coffee Maker"))
                                 .build(),
+
+                        Room.builder()
+                                .roomNumber("202")
+                                .roomType(Room.RoomType.DELUXE)
+                                .floorNumber(2)
+                                .building("Main Building")
+                                .capacity(3)
+                                .pricePerNight(new BigDecimal("139.99"))
+                                .status(Room.RoomStatus.OCCUPIED)
+                                .description("Deluxe room with ocean view")
+                                .amenities(List.of("WiFi", "Smart TV", "Air Conditioning", "Mini Bar", "Ocean View", "Coffee Maker"))
+                                .build(),
+
                         Room.builder()
                                 .roomNumber("301")
                                 .roomType(Room.RoomType.SUITE)
                                 .floorNumber(3)
                                 .building("Main Building")
-                                .maxOccupancy(4)
+                                .capacity(4)
                                 .pricePerNight(new BigDecimal("199.99"))
                                 .status(Room.RoomStatus.AVAILABLE)
                                 .description("Executive suite with living room")
+                                .amenities(List.of("WiFi", "Smart TV", "Air Conditioning", "Mini Bar", "Living Room", "Kitchenette", "Jacuzzi"))
+                                .build(),
+
+                        Room.builder()
+                                .roomNumber("302")
+                                .roomType(Room.RoomType.JUNIOR_SUITE)
+                                .floorNumber(3)
+                                .building("Main Building")
+                                .capacity(3)
+                                .pricePerNight(new BigDecimal("169.99"))
+                                .status(Room.RoomStatus.AVAILABLE)
+                                .description("Junior suite with separate seating area")
+                                .amenities(List.of("WiFi", "Smart TV", "Air Conditioning", "Mini Bar", "Seating Area"))
+                                .build(),
+
+                        Room.builder()
+                                .roomNumber("401")
+                                .roomType(Room.RoomType.PRESIDENTIAL_SUITE)
+                                .floorNumber(4)
+                                .building("Main Building")
+                                .capacity(6)
+                                .pricePerNight(new BigDecimal("399.99"))
+                                .status(Room.RoomStatus.AVAILABLE)
+                                .description("Presidential suite with panoramic views")
+                                .amenities(List.of("WiFi", "Multiple Smart TVs", "Air Conditioning", "Full Bar", "Dining Room", "Kitchen", "Jacuzzi", "Private Balcony"))
+                                .build(),
+
+                        Room.builder()
+                                .roomNumber("501")
+                                .roomType(Room.RoomType.FAMILY_ROOM)
+                                .floorNumber(5)
+                                .building("Main Building")
+                                .capacity(5)
+                                .pricePerNight(new BigDecimal("159.99"))
+                                .status(Room.RoomStatus.MAINTENANCE)
+                                .description("Family room with extra beds")
+                                .amenities(List.of("WiFi", "TV", "Air Conditioning", "Extra Beds", "Refrigerator"))
+                                .build(),
+
+                        Room.builder()
+                                .roomNumber("103")
+                                .roomType(Room.RoomType.SINGLE)
+                                .floorNumber(1)
+                                .building("Annex Building")
+                                .capacity(1)
+                                .pricePerNight(new BigDecimal("69.99"))
+                                .status(Room.RoomStatus.AVAILABLE)
+                                .description("Single room for solo travelers")
+                                .amenities(List.of("WiFi", "TV", "Air Conditioning"))
+                                .build(),
+
+                        Room.builder()
+                                .roomNumber("104")
+                                .roomType(Room.RoomType.DOUBLE)
+                                .floorNumber(1)
+                                .building("Annex Building")
+                                .capacity(2)
+                                .pricePerNight(new BigDecimal("79.99"))
+                                .status(Room.RoomStatus.CLEANING)
+                                .description("Double room with queen bed")
+                                .amenities(List.of("WiFi", "TV", "Air Conditioning"))
+                                .build(),
+
+                        Room.builder()
+                                .roomNumber("105")
+                                .roomType(Room.RoomType.TWIN)
+                                .floorNumber(1)
+                                .building("Annex Building")
+                                .capacity(2)
+                                .pricePerNight(new BigDecimal("79.99"))
+                                .status(Room.RoomStatus.AVAILABLE)
+                                .description("Twin room with two single beds")
+                                .amenities(List.of("WiFi", "TV", "Air Conditioning"))
+                                .build(),
+
+                        Room.builder()
+                                .roomNumber("203")
+                                .roomType(Room.RoomType.DELUXE)
+                                .floorNumber(2)
+                                .building("Annex Building")
+                                .capacity(3)
+                                .pricePerNight(new BigDecimal("119.99"))
+                                .status(Room.RoomStatus.OUT_OF_ORDER)
+                                .description("Deluxe room currently under renovation")
+                                .amenities(List.of("WiFi", "TV", "Air Conditioning"))
                                 .build()
                 );
 
                 List<Room> savedRooms = roomRepository.saveAll(rooms);
                 log.info("✅ Created {} sample rooms", savedRooms.size());
+
+                // Log some statistics
+                logRoomStatistics();
+
             } else {
                 log.info("Rooms already exist ({})", roomRepository.count());
+                logRoomStatistics();
             }
         } catch (Exception e) {
             log.error("Error initializing sample rooms: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to initialize sample rooms", e);
+        }
+    }
+
+    private void logRoomStatistics() {
+        try {
+//            long totalRooms = roomRepository.countAllRooms();
+//            long availableRooms = roomRepository.countAvailableRooms();
+//            long occupiedRooms = roomRepository.countOccupiedRooms();
+//            long maintenanceRooms = roomRepository.countMaintenanceRooms();
+//            long cleaningRooms = roomRepository.countCleaningRooms();
+
+            log.info("📊 Room Statistics:");
+//            log.info("   Total rooms: {}", totalRooms);
+//            log.info("   Available: {}", availableRooms);
+//            log.info("   Occupied: {}", occupiedRooms);
+//            log.info("   Maintenance: {}", maintenanceRooms);
+//            log.info("   Cleaning: {}", cleaningRooms);
+//            log.info("   Out of Order: {}", totalRooms - (availableRooms + occupiedRooms + maintenanceRooms + cleaningRooms));
+        } catch (Exception e) {
+            log.warn("Could not log room statistics: {}", e.getMessage());
         }
     }
 

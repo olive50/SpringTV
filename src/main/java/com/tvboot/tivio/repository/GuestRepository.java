@@ -1,6 +1,6 @@
 package com.tvboot.tivio.repository;
 
-import com.tvboot.tivio.entities.Guest;
+import com.tvboot.tivio.guest.Guest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
