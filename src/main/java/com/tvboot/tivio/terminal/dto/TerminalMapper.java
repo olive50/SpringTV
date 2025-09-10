@@ -14,6 +14,7 @@ import java.util.List;
 public interface TerminalMapper {
 
     //@Mapping(target = "room", source = "room", qualifiedByName = "roomToSummaryDto")
+//    @Mapping(target = "roomNumber", source = "room.roomNumber")
     TerminalDto toDto(Terminal terminal);
 
     List<TerminalDto> toDtoList(List<Terminal> terminals);
