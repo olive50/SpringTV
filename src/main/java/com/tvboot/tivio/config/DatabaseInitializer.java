@@ -24,14 +24,16 @@ import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@Order(100) // Run after other initializers
-@DependsOn("entityManagerFactory") // Wait for JPA to be ready
+@Order(100)
+@DependsOn("entityManagerFactory")
 public class DatabaseInitializer implements CommandLineRunner {
 
     private final DataSource dataSource;
@@ -42,6 +44,9 @@ public class DatabaseInitializer implements CommandLineRunner {
     private final RoomRepository roomRepository;
     private final PasswordEncoder passwordEncoder;
 
+    // Default password for all users (can be changed later)
+    private static final String DEFAULT_PASSWORD = "admin123";
+
     @Override
     public void run(String... args) throws Exception {
         log.info("=== Starting Database Initialization ===");
@@ -50,18 +55,20 @@ public class DatabaseInitializer implements CommandLineRunner {
             // Step 1: Verify database connection
             verifyDatabaseConnection();
 
-            // Step 2: Initialize core data (users, languages, categories)
-            // Use separate transactions to avoid long-running transactions
-            initializeCoreDataSafely();
+            // Step 2: Initialize all users properly
+            initializeUsersWithTransaction();
 
-            // Step 3: Initialize business data (channels, rooms)
+            // Step 3: Initialize other core data
+            initializeLanguagesWithTransaction();
+            initializeCategoriesWithTransaction();
+
+            // Step 4: Initialize business data
             initializeBusinessDataSafely();
 
             log.info("=== Database Initialization Completed Successfully ===");
 
         } catch (Exception e) {
             log.error("=== Database Initialization Failed ===", e);
-            // Don't rethrow in development - let application start
             if (isProductionProfile()) {
                 throw e;
             }
@@ -69,19 +76,18 @@ public class DatabaseInitializer implements CommandLineRunner {
     }
 
     /**
-     * STEP 1: Verify database connection without transaction
+     * Verify database connection
      */
     private void verifyDatabaseConnection() throws SQLException {
         log.info("Verifying database connection...");
 
         try (Connection connection = dataSource.getConnection()) {
-            if (connection.isValid(5)) { // 5 second timeout
+            if (connection.isValid(5)) {
                 log.info("✅ Database connection verified successfully");
                 log.info("Database URL: {}", connection.getMetaData().getURL());
                 log.info("Database Product: {} {}",
                         connection.getMetaData().getDatabaseProductName(),
                         connection.getMetaData().getDatabaseProductVersion());
-                log.info("Auto-commit mode: {}", connection.getAutoCommit());
             } else {
                 throw new SQLException("Database connection is not valid");
             }
@@ -92,46 +98,214 @@ public class DatabaseInitializer implements CommandLineRunner {
     }
 
     /**
-     * STEP 2: Initialize core data with separate transactions
-     */
-    private void initializeCoreDataSafely() {
-        log.info("Initializing core data with safe transactions...");
-
-        try {
-            initializeUsersWithTransaction();
-            initializeLanguagesWithTransaction();
-            initializeCategoriesWithTransaction();
-            log.info("✅ Core data initialization completed");
-        } catch (Exception e) {
-            log.error("Error in core data initialization: {}", e.getMessage(), e);
-            throw new RuntimeException("Core data initialization failed", e);
-        }
-    }
-
-    /**
-     * Initialize users with proper transaction management
+     * Initialize all users with proper transaction management
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void initializeUsersWithTransaction() {
-        log.info("Initializing users in separate transaction...");
+        log.info("Initializing all users in separate transaction...");
 
         try {
             long userCount = userRepository.count();
             log.info("Current users in database: {}", userCount);
 
             if (userCount == 0) {
-                log.info("No users found, creating default users...");
-                createDefaultUsers();
+                log.info("No users found, creating all default users...");
+                createAllDefaultUsers();
             } else {
-                log.info("Users already exist, verifying admin user...");
-                verifyAdminUser();
+                log.info("Users exist, verifying and updating all users...");
+                verifyAndUpdateAllUsers();
             }
 
-            log.info("✅ Users initialization completed successfully");
+            // Final verification
+            verifyAllUsersCanAuthenticate();
+
+            log.info("✅ All users initialization completed successfully");
 
         } catch (Exception e) {
             log.error("Error initializing users: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to initialize users", e);
+        }
+    }
+
+    /**
+     * Create all default users
+     */
+    private void createAllDefaultUsers() {
+        List<UserData> defaultUsers = Arrays.asList(
+                new UserData("admin", "admin@tvboot.com", "System", "Administrator", User.Role.ADMIN),
+                new UserData("manager", "manager@tvboot.com", "Hotel", "Manager", User.Role.MANAGER),
+                new UserData("receptionist", "receptionist@tvboot.com", "Front", "Desk", User.Role.RECEPTIONIST),
+                new UserData("technician", "technician@tvboot.com", "IT", "Technician", User.Role.TECHNICIAN)
+        );
+
+        for (UserData userData : defaultUsers) {
+            try {
+                User user = createAndSaveUser(userData);
+                log.info("✅ Created user: {} (ID: {}, Role: {})",
+                        user.getUsername(), user.getId(), user.getRole());
+
+                // Immediately verify password encoding
+                verifyUserPassword(user, DEFAULT_PASSWORD);
+
+            } catch (Exception e) {
+                log.error("❌ Failed to create user: {} - {}", userData.username, e.getMessage());
+                throw new RuntimeException("Failed to create user: " + userData.username, e);
+            }
+        }
+    }
+
+    /**
+     * Verify and update all existing users
+     */
+    private void verifyAndUpdateAllUsers() {
+        List<String> usernames = Arrays.asList("admin", "manager", "receptionist", "technician");
+
+        for (String username : usernames) {
+            Optional<User> userOpt = userRepository.findByUsername(username);
+
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+
+                // Check if password needs updating
+                if (!passwordEncoder.matches(DEFAULT_PASSWORD, user.getPassword())) {
+                    log.warn("⚠️ Password verification failed for user: {}, updating...", username);
+                    user.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
+                    userRepository.save(user);
+                    log.info("✅ Password updated for user: {}", username);
+                } else {
+                    log.info("✅ Password verified for user: {}", username);
+                }
+
+                // Ensure user is active
+                if (!user.isActive()) {
+                    user.setActive(true);
+                    userRepository.save(user);
+                    log.info("✅ Activated user: {}", username);
+                }
+
+            } else {
+                log.warn("⚠️ User {} not found, creating...", username);
+                createMissingUser(username);
+            }
+        }
+    }
+
+    /**
+     * Create a missing user based on username
+     */
+    private void createMissingUser(String username) {
+        UserData userData;
+
+        switch (username) {
+            case "admin":
+                userData = new UserData("admin", "admin@tvboot.com", "System", "Administrator", User.Role.ADMIN);
+                break;
+            case "manager":
+                userData = new UserData("manager", "manager@tvboot.com", "Hotel", "Manager", User.Role.MANAGER);
+                break;
+            case "receptionist":
+                userData = new UserData("receptionist", "receptionist@tvboot.com", "Front", "Desk", User.Role.RECEPTIONIST);
+                break;
+            case "technician":
+                userData = new UserData("technician", "technician@tvboot.com", "IT", "Technician", User.Role.TECHNICIAN);
+                break;
+            default:
+                log.error("❌ Unknown username for creation: {}", username);
+                return;
+        }
+
+        User user = createAndSaveUser(userData);
+        log.info("✅ Created missing user: {} (ID: {})", user.getUsername(), user.getId());
+    }
+
+    /**
+     * Create and save a user with proper password encoding
+     */
+    private User createAndSaveUser(UserData userData) {
+        // Encode password
+        String encodedPassword = passwordEncoder.encode(DEFAULT_PASSWORD);
+
+        User user = User.builder()
+                .username(userData.username)
+                .email(userData.email)
+                .password(encodedPassword)
+                .firstName(userData.firstName)
+                .lastName(userData.lastName)
+                .role(userData.role)
+                .isActive(true)
+                .build();
+
+        User savedUser = userRepository.save(user);
+
+        // Verify immediately after saving
+        if (!verifyUserPassword(savedUser, DEFAULT_PASSWORD)) {
+            throw new RuntimeException("Failed to verify password after creation for user: " + userData.username);
+        }
+
+        return savedUser;
+    }
+
+    /**
+     * Verify user password
+     */
+    private boolean verifyUserPassword(User user, String plainPassword) {
+        boolean matches = passwordEncoder.matches(plainPassword, user.getPassword());
+
+        if (matches) {
+            log.debug("✅ Password verification successful for user: {}", user.getUsername());
+        } else {
+            log.error("❌ Password verification failed for user: {}", user.getUsername());
+        }
+
+        return matches;
+    }
+
+    /**
+     * Final verification that all users can authenticate
+     */
+    private void verifyAllUsersCanAuthenticate() {
+        log.info("Performing final authentication verification for all users...");
+
+        List<String> usernames = Arrays.asList("admin", "manager", "receptionist", "technician");
+
+        for (String username : usernames) {
+            Optional<User> userOpt = userRepository.findByUsername(username);
+
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+
+                if (verifyUserPassword(user, DEFAULT_PASSWORD)) {
+                    log.info("✅ Authentication verified for user: {} (Role: {})",
+                            username, user.getRole());
+                } else {
+                    log.error("❌ Authentication failed for user: {}", username);
+                    throw new RuntimeException("Authentication verification failed for user: " + username);
+                }
+            } else {
+                log.error("❌ User not found during verification: {}", username);
+                throw new RuntimeException("User not found during verification: " + username);
+            }
+        }
+
+        log.info("✅ All users can authenticate successfully");
+    }
+
+    /**
+     * Helper class for user data
+     */
+    private static class UserData {
+        final String username;
+        final String email;
+        final String firstName;
+        final String lastName;
+        final User.Role role;
+
+        UserData(String username, String email, String firstName, String lastName, User.Role role) {
+            this.username = username;
+            this.email = email;
+            this.firstName = firstName;
+            this.lastName = lastName;
+            this.role = role;
         }
     }
 
@@ -144,10 +318,10 @@ public class DatabaseInitializer implements CommandLineRunner {
 
         try {
             if (languageRepository.count() == 0) {
-                log.info("Creating comprehensive languages...");
+                log.info("Creating default languages...");
 
                 List<Language> languages = List.of(
-                                Language.builder()
+                        Language.builder()
                                 .name("English")
                                 .nativeName("English")
                                 .iso6391("en")
@@ -229,67 +403,11 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .epgTranslationEnabled(true)
                                 .welcomeMessage("Bienvenue dans notre système de divertissement hôtelier!")
                                 .supportedPlatforms(Set.of("TIZEN", "WEBOS", "ANDROID", "WEB", "IOS"))
-                                .build(),
-
-                        Language.builder()
-                                .name("Spanish")
-                                .nativeName("Español")
-                                .iso6391("es")
-                                .iso6392("spa")
-                                .localeCode("es-ES")
-                                .charset("UTF-8")
-                                .isRtl(false)
-                                .isActive(true)
-                                .isDefault(false)
-                                .isAdminEnabled(true)
-                                .isGuestEnabled(true)
-                                .displayOrder(4)
-                                .fontFamily("Arial, sans-serif")
-                                .currencyCode("EUR")
-                                .currencySymbol("€")
-                                .dateFormat("dd/MM/yyyy")
-                                .timeFormat("HH:mm")
-                                .numberFormat("#,##0.00")
-                                .decimalSeparator(',')
-                                .thousandsSeparator('.')
-                                .uiTranslationProgress(95)
-                                .channelTranslationProgress(85)
-                                .epgTranslationEnabled(true)
-                                .welcomeMessage("¡Bienvenido a nuestro sistema de entretenimiento hotelero!")
-                                .supportedPlatforms(Set.of("TIZEN", "WEBOS", "ANDROID", "WEB", "IOS"))
-                                .build(),
-
-                        Language.builder()
-                                .name("German")
-                                .nativeName("Deutsch")
-                                .iso6391("de")
-                                .iso6392("deu")
-                                .localeCode("de-DE")
-                                .charset("UTF-8")
-                                .isRtl(false)
-                                .isActive(true)
-                                .isDefault(false)
-                                .isAdminEnabled(true)
-                                .isGuestEnabled(true)
-                                .displayOrder(5)
-                                .fontFamily("Arial, sans-serif")
-                                .currencyCode("EUR")
-                                .currencySymbol("€")
-                                .dateFormat("dd.MM.yyyy")
-                                .timeFormat("HH:mm")
-                                .numberFormat("#.##0,00")
-                                .decimalSeparator(',')
-                                .thousandsSeparator('.')
-                                .uiTranslationProgress(92)
-                                .channelTranslationProgress(80)
-                                .epgTranslationEnabled(true)
-                                .welcomeMessage("Willkommen in unserem Hotel-Unterhaltungssystem!")
-                                .supportedPlatforms(Set.of("TIZEN", "WEBOS", "ANDROID", "WEB", "IOS"))
                                 .build()
                 );
 
                 List<Language> savedLanguages = languageRepository.saveAll(languages);
-                log.info("✅ Created {} comprehensive languages", savedLanguages.size());
+                log.info("✅ Created {} languages", savedLanguages.size());
             } else {
                 log.info("Languages already initialized ({})", languageRepository.count());
             }
@@ -350,10 +468,10 @@ public class DatabaseInitializer implements CommandLineRunner {
     }
 
     /**
-     * STEP 3: Initialize business data with safe transactions
+     * Initialize business data safely
      */
     private void initializeBusinessDataSafely() {
-        log.info("Initializing business data with safe transactions...");
+        log.info("Initializing business data...");
 
         try {
             initializeSampleChannelsWithTransaction();
@@ -361,17 +479,15 @@ public class DatabaseInitializer implements CommandLineRunner {
             log.info("✅ Business data initialization completed");
         } catch (Exception e) {
             log.error("Error in business data initialization: {}", e.getMessage(), e);
-            // Don't fail the application for sample data issues
             log.warn("⚠️ Business data initialization failed, but continuing...");
         }
     }
 
     /**
-     * Initialize sample channels with proper transaction management
+     * Initialize sample channels
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void initializeSampleChannelsWithTransaction() {
-        // Only create sample data in development
         if (isProductionProfile()) {
             log.info("Skipping sample channels in production profile");
             return;
@@ -383,18 +499,13 @@ public class DatabaseInitializer implements CommandLineRunner {
             if (channelRepository.count() == 0) {
                 log.info("Creating sample TV channels...");
 
-                // Get references to languages and categories
                 Language english = languageRepository.findByIso6391("en")
                         .orElseThrow(() -> new RuntimeException("English language not found"));
-                Language arabic = languageRepository.findByIso6391("ar")
-                        .orElseThrow(() -> new RuntimeException("Arabic language not found"));
 
                 TvChannelCategory news = categoryRepository.findByName("News")
                         .orElseThrow(() -> new RuntimeException("News category not found"));
                 TvChannelCategory sports = categoryRepository.findByName("Sports")
                         .orElseThrow(() -> new RuntimeException("Sports category not found"));
-                TvChannelCategory entertainment = categoryRepository.findByName("Entertainment")
-                        .orElseThrow(() -> new RuntimeException("Entertainment category not found"));
 
                 List<TvChannel> channels = List.of(
                         TvChannel.builder()
@@ -416,29 +527,11 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .language(english)
                                 .build(),
                         TvChannel.builder()
-                                .channelNumber(103)
-                                .name("Al Jazeera English")
-                                .description("Qatari international news channel")
-                                .ip("192.168.1.102")
-                                .port(8003)
-                                .category(news)
-                                .language(english)
-                                .build(),
-                        TvChannel.builder()
                                 .channelNumber(201)
                                 .name("ESPN")
                                 .description("Sports entertainment channel")
                                 .ip("192.168.1.103")
                                 .port(8004)
-                                .category(sports)
-                                .language(english)
-                                .build(),
-                        TvChannel.builder()
-                                .channelNumber(202)
-                                .name("beIN Sports")
-                                .description("International sports channel")
-                                .ip("192.168.1.104")
-                                .port(8005)
                                 .category(sports)
                                 .language(english)
                                 .build()
@@ -456,12 +549,10 @@ public class DatabaseInitializer implements CommandLineRunner {
     }
 
     /**
-     * Initialize sample rooms with proper transaction management
+     * Initialize sample rooms
      */
-
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void initializeSampleRoomsWithTransaction() {
-        // Only create sample data in development
         if (isProductionProfile()) {
             log.info("Skipping sample rooms in production profile");
             return;
@@ -487,18 +578,6 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .build(),
 
                         Room.builder()
-                                .roomNumber("102")
-                                .roomType(Room.RoomType.STANDARD)
-                                .floorNumber(1)
-                                .building("Main Building")
-                                .capacity(2)
-                                .pricePerNight(new BigDecimal("89.99"))
-                                .status(Room.RoomStatus.AVAILABLE)
-                                .description("Standard room with garden view")
-                                .amenities(List.of("WiFi", "TV", "Air Conditioning"))
-                                .build(),
-
-                        Room.builder()
                                 .roomNumber("201")
                                 .roomType(Room.RoomType.DELUXE)
                                 .floorNumber(2)
@@ -507,19 +586,7 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .pricePerNight(new BigDecimal("129.99"))
                                 .status(Room.RoomStatus.AVAILABLE)
                                 .description("Deluxe room with balcony")
-                                .amenities(List.of("WiFi", "Smart TV", "Air Conditioning", "Mini Bar", "Balcony", "Coffee Maker"))
-                                .build(),
-
-                        Room.builder()
-                                .roomNumber("202")
-                                .roomType(Room.RoomType.DELUXE)
-                                .floorNumber(2)
-                                .building("Main Building")
-                                .capacity(3)
-                                .pricePerNight(new BigDecimal("139.99"))
-                                .status(Room.RoomStatus.OCCUPIED)
-                                .description("Deluxe room with ocean view")
-                                .amenities(List.of("WiFi", "Smart TV", "Air Conditioning", "Mini Bar", "Ocean View", "Coffee Maker"))
+                                .amenities(List.of("WiFi", "Smart TV", "Air Conditioning", "Mini Bar", "Balcony"))
                                 .build(),
 
                         Room.builder()
@@ -531,201 +598,20 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .pricePerNight(new BigDecimal("199.99"))
                                 .status(Room.RoomStatus.AVAILABLE)
                                 .description("Executive suite with living room")
-                                .amenities(List.of("WiFi", "Smart TV", "Air Conditioning", "Mini Bar", "Living Room", "Kitchenette", "Jacuzzi"))
-                                .build(),
-
-                        Room.builder()
-                                .roomNumber("302")
-                                .roomType(Room.RoomType.JUNIOR_SUITE)
-                                .floorNumber(3)
-                                .building("Main Building")
-                                .capacity(3)
-                                .pricePerNight(new BigDecimal("169.99"))
-                                .status(Room.RoomStatus.AVAILABLE)
-                                .description("Junior suite with separate seating area")
-                                .amenities(List.of("WiFi", "Smart TV", "Air Conditioning", "Mini Bar", "Seating Area"))
-                                .build(),
-
-                        Room.builder()
-                                .roomNumber("401")
-                                .roomType(Room.RoomType.PRESIDENTIAL_SUITE)
-                                .floorNumber(4)
-                                .building("Main Building")
-                                .capacity(6)
-                                .pricePerNight(new BigDecimal("399.99"))
-                                .status(Room.RoomStatus.AVAILABLE)
-                                .description("Presidential suite with panoramic views")
-                                .amenities(List.of("WiFi", "Multiple Smart TVs", "Air Conditioning", "Full Bar", "Dining Room", "Kitchen", "Jacuzzi", "Private Balcony"))
-                                .build(),
-
-                        Room.builder()
-                                .roomNumber("501")
-                                .roomType(Room.RoomType.FAMILY_ROOM)
-                                .floorNumber(5)
-                                .building("Main Building")
-                                .capacity(5)
-                                .pricePerNight(new BigDecimal("159.99"))
-                                .status(Room.RoomStatus.MAINTENANCE)
-                                .description("Family room with extra beds")
-                                .amenities(List.of("WiFi", "TV", "Air Conditioning", "Extra Beds", "Refrigerator"))
-                                .build(),
-
-                        Room.builder()
-                                .roomNumber("103")
-                                .roomType(Room.RoomType.SINGLE)
-                                .floorNumber(1)
-                                .building("Annex Building")
-                                .capacity(1)
-                                .pricePerNight(new BigDecimal("69.99"))
-                                .status(Room.RoomStatus.AVAILABLE)
-                                .description("Single room for solo travelers")
-                                .amenities(List.of("WiFi", "TV", "Air Conditioning"))
-                                .build(),
-
-                        Room.builder()
-                                .roomNumber("104")
-                                .roomType(Room.RoomType.DOUBLE)
-                                .floorNumber(1)
-                                .building("Annex Building")
-                                .capacity(2)
-                                .pricePerNight(new BigDecimal("79.99"))
-                                .status(Room.RoomStatus.CLEANING)
-                                .description("Double room with queen bed")
-                                .amenities(List.of("WiFi", "TV", "Air Conditioning"))
-                                .build(),
-
-                        Room.builder()
-                                .roomNumber("105")
-                                .roomType(Room.RoomType.TWIN)
-                                .floorNumber(1)
-                                .building("Annex Building")
-                                .capacity(2)
-                                .pricePerNight(new BigDecimal("79.99"))
-                                .status(Room.RoomStatus.AVAILABLE)
-                                .description("Twin room with two single beds")
-                                .amenities(List.of("WiFi", "TV", "Air Conditioning"))
-                                .build(),
-
-                        Room.builder()
-                                .roomNumber("203")
-                                .roomType(Room.RoomType.DELUXE)
-                                .floorNumber(2)
-                                .building("Annex Building")
-                                .capacity(3)
-                                .pricePerNight(new BigDecimal("119.99"))
-                                .status(Room.RoomStatus.OUT_OF_ORDER)
-                                .description("Deluxe room currently under renovation")
-                                .amenities(List.of("WiFi", "TV", "Air Conditioning"))
+                                .amenities(List.of("WiFi", "Smart TV", "Air Conditioning", "Mini Bar", "Living Room"))
                                 .build()
                 );
 
                 List<Room> savedRooms = roomRepository.saveAll(rooms);
                 log.info("✅ Created {} sample rooms", savedRooms.size());
 
-                // Log some statistics
-                logRoomStatistics();
-
             } else {
                 log.info("Rooms already exist ({})", roomRepository.count());
-                logRoomStatistics();
             }
         } catch (Exception e) {
             log.error("Error initializing sample rooms: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to initialize sample rooms", e);
         }
-    }
-
-    private void logRoomStatistics() {
-        try {
-//            long totalRooms = roomRepository.countAllRooms();
-//            long availableRooms = roomRepository.countAvailableRooms();
-//            long occupiedRooms = roomRepository.countOccupiedRooms();
-//            long maintenanceRooms = roomRepository.countMaintenanceRooms();
-//            long cleaningRooms = roomRepository.countCleaningRooms();
-
-            log.info("📊 Room Statistics:");
-//            log.info("   Total rooms: {}", totalRooms);
-//            log.info("   Available: {}", availableRooms);
-//            log.info("   Occupied: {}", occupiedRooms);
-//            log.info("   Maintenance: {}", maintenanceRooms);
-//            log.info("   Cleaning: {}", cleaningRooms);
-//            log.info("   Out of Order: {}", totalRooms - (availableRooms + occupiedRooms + maintenanceRooms + cleaningRooms));
-        } catch (Exception e) {
-            log.warn("Could not log room statistics: {}", e.getMessage());
-        }
-    }
-
-    /**
-     * Create default users
-     */
-    private void createDefaultUsers() {
-        List<User> defaultUsers = List.of(
-                createUser("admin", "admin@tvboot.com", "admin123", "System", "Administrator", User.Role.ADMIN),
-                createUser("manager", "manager@tvboot.com", "admin123", "Hotel", "Manager", User.Role.MANAGER),
-                createUser("receptionist", "receptionist@tvboot.com", "admin123", "Front", "Desk", User.Role.RECEPTIONIST),
-                createUser("technician", "technician@tvboot.com", "admin123", "IT", "Technician", User.Role.TECHNICIAN)
-        );
-
-        for (User user : defaultUsers) {
-            try {
-                User saved = userRepository.save(user);
-                log.info("✅ Created user: {} (ID: {})", saved.getUsername(), saved.getId());
-
-                // Verify password encoding worked
-                boolean passwordMatches = passwordEncoder.matches("admin123", saved.getPassword());
-                if (!passwordMatches) {
-                    log.error("❌ Password encoding failed for user: {}", saved.getUsername());
-                } else {
-                    log.debug("✅ Password verification successful for user: {}", saved.getUsername());
-                }
-
-            } catch (Exception e) {
-                log.error("❌ Failed to create user: {} - {}", user.getUsername(), e.getMessage());
-            }
-        }
-    }
-
-    /**
-     * Helper method to create a user with encoded password
-     */
-    private User createUser(String username, String email, String password,
-                            String firstName, String lastName, User.Role role) {
-        return User.builder()
-                .username(username)
-                .email(email)
-                .password(passwordEncoder.encode(password))
-                .firstName(firstName)
-                .lastName(lastName)
-                .role(role)
-                .isActive(true)
-                .build();
-    }
-
-    /**
-     * Verify admin user exists and password works
-     */
-    private void verifyAdminUser() {
-        userRepository.findByUsername("admin")
-                .ifPresentOrElse(
-                        admin -> {
-                            boolean passwordMatches = passwordEncoder.matches("admin123", admin.getPassword());
-                            if (passwordMatches) {
-                                log.info("✅ Admin user verified successfully");
-                            } else {
-                                log.warn("⚠️ Admin password verification failed, updating...");
-                                admin.setPassword(passwordEncoder.encode("admin123"));
-                                userRepository.save(admin);
-                                log.info("✅ Admin password updated successfully");
-                            }
-                        },
-                        () -> {
-                            log.warn("⚠️ Admin user not found, creating...");
-                            User admin = createUser("admin", "admin@tvboot.com", "admin123",
-                                    "System", "Administrator", User.Role.ADMIN);
-                            userRepository.save(admin);
-                            log.info("✅ Admin user created successfully");
-                        }
-                );
     }
 
     /**
