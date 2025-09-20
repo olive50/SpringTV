@@ -1,7 +1,5 @@
 package com.tvboot.tivio.room;
 
-import com.tvboot.tivio.dto.TvChannelDTO;
-import com.tvboot.tivio.dto.TvChannelStatsDTO;
 import com.tvboot.tivio.room.dto.RoomRequest;
 import com.tvboot.tivio.room.dto.RoomResponse;
 import com.tvboot.tivio.room.dto.RoomStatsDTO;
@@ -9,9 +7,7 @@ import com.tvboot.tivio.room.dto.RoomSummary;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

@@ -1,8 +1,8 @@
 package com.tvboot.tivio.language;
 
-import com.tvboot.tivio.exception.BusinessException;
-import com.tvboot.tivio.exception.ResourceNotFoundException;
-import com.tvboot.tivio.exception.ValidationException;
+import com.tvboot.tivio.common.exception.BusinessException;
+import com.tvboot.tivio.common.exception.ResourceNotFoundException;
+import com.tvboot.tivio.common.exception.ValidationException;
 import com.tvboot.tivio.language.dto.*;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;

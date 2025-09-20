@@ -1,6 +1,6 @@
 package com.tvboot.tivio.room.dto;
 
-import com.tvboot.tivio.entities.ChannelPackage;
+import com.tvboot.tivio.tv.tvpackage.ChannelPackage;
 import com.tvboot.tivio.room.Room;
 import com.tvboot.tivio.terminal.Terminal;
 import lombok.AllArgsConstructor;
