@@ -41,7 +41,7 @@ CREATE TABLE languages (
                            native_name VARCHAR(100) NOT NULL,
                            iso_639_1 CHAR(2) NOT NULL UNIQUE,
                            iso_639_2 CHAR(3),
-                           locale_code VARCHAR(5),
+                           locale_code VARCHAR(10), -- allow longer than 5
                            charset VARCHAR(50) DEFAULT 'UTF-8',
                            flag_url VARCHAR(500),
                            flag_path VARCHAR(255),
@@ -59,8 +59,8 @@ CREATE TABLE languages (
                            number_format VARCHAR(50),
                            decimal_separator CHAR(1) DEFAULT '.',
                            thousands_separator CHAR(1) DEFAULT ',',
-                           ui_translation_progress INT DEFAULT 0 CHECK (ui_translation_progress >= 0 AND ui_translation_progress <= 100),
-                           channel_translation_progress INT DEFAULT 0 CHECK (channel_translation_progress >= 0 AND channel_translation_progress <= 100),
+                           ui_translation_progress INT DEFAULT 0 CHECK (ui_translation_progress BETWEEN 0 AND 100),
+                           channel_translation_progress INT DEFAULT 0 CHECK (channel_translation_progress BETWEEN 0 AND 100),
                            epg_translation_enabled BOOLEAN DEFAULT FALSE,
                            welcome_message TEXT,
                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -69,13 +69,14 @@ CREATE TABLE languages (
                            last_modified_by VARCHAR(100),
                            PRIMARY KEY (id),
                            INDEX idx_language_iso_639_1 (iso_639_1),
+                           INDEX idx_language_iso_639_2 (iso_639_2),
                            INDEX idx_language_active (is_active),
                            INDEX idx_language_default (is_default),
                            INDEX idx_language_admin_enabled (is_admin_enabled),
                            INDEX idx_language_guest_enabled (is_guest_enabled),
                            INDEX idx_language_display_order (display_order),
-                           INDEX idx_language_composite (is_active, is_guest_enabled, display_order),
-                           CONSTRAINT uk_language_default UNIQUE (is_default)
+                           INDEX idx_language_composite (is_active, is_guest_enabled, display_order)
+                        -- ❌ Removed CONSTRAINT uk_language_default UNIQUE (is_default)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Supported languages for the IPTV platform';
 
 -- Language supported platforms (Many-to-Many)

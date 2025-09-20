@@ -24,6 +24,8 @@ spring:
       idle-timeout: 300000
       max-lifetime: 1200000
 
+
+
   # ==========================================
   # JPA & HIBERNATE CONFIGURATION
   # ==========================================

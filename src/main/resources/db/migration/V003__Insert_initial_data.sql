@@ -22,66 +22,29 @@ INSERT INTO users (username, email, password, first_name, last_name, role, is_ac
 -- ==========================================
 
 -- Insert default languages with comprehensive settings
-INSERT INTO languages (
-    name, native_name, iso_639_1, iso_639_2, locale_code, charset, is_rtl, is_active, is_default,
-    is_admin_enabled, is_guest_enabled, display_order, font_family, currency_code, currency_symbol,
-    date_format, time_format, number_format, decimal_separator, thousands_separator,
-    ui_translation_progress, channel_translation_progress, epg_translation_enabled, welcome_message,
-    created_by
-) VALUES
--- English (Default)
-(
-    'English', 'English', 'en', 'eng', 'en-US', 'UTF-8', FALSE, TRUE, TRUE,
-    TRUE, TRUE, 0, 'Arial, sans-serif', 'USD', '$',
-    'MM/dd/yyyy', 'hh:mm a', '#,##0.00', '.', ',',
-    100, 95, TRUE, 'Welcome to our hotel entertainment system!',
-    'system'
-),
+INSERT INTO languages
+(name, native_name, iso_639_1, iso_639_2, locale_code, is_rtl, is_active, is_default, display_order, currency_code, currency_symbol, date_format, time_format, decimal_separator, thousands_separator, ui_translation_progress, channel_translation_progress, welcome_message, created_by, last_modified_by)
+VALUES
+    ('English', 'English', 'en', 'eng', 'en-US', FALSE, TRUE, TRUE, 1, 'USD', '$', 'yyyy-MM-dd', 'HH:mm', '.', ',', 100, 100, 'Welcome', 'system', 'system'),
 
--- French
-(
-    'French', 'Français', 'fr', 'fra', 'fr-FR', 'UTF-8', FALSE, TRUE, FALSE,
-    TRUE, TRUE, 1, 'Arial, sans-serif', 'EUR', '€',
-    'dd/MM/yyyy', 'HH:mm', '# ##0,00', ',', ' ',
-    100, 88, TRUE, 'Bienvenue dans notre système de divertissement hôtelier!',
-    'system'
-),
+    ('French', 'Français', 'fr', 'fra', 'fr-FR', FALSE, TRUE, FALSE, 2, 'EUR', '€', 'dd/MM/yyyy', 'HH:mm', ',', ' ', 95, 80, 'Bienvenue', 'system', 'system'),
 
--- Arabic
-(
-    'Arabic', 'العربية', 'ar', 'ara', 'ar-DZ', 'UTF-8', TRUE, TRUE, FALSE,
-    TRUE, FALSE, 2, 'Arial, Noto Sans Arabic', 'DZD', 'د.ج',
-    'yyyy/MM/dd', 'HH:mm', '#,##0.00', '.', ',',
-    70, 60, TRUE, 'مرحباً بكم في نظام الترفيه بالفندق!',
-    'system'
-),
+    ('Spanish', 'Español', 'es', 'spa', 'es-ES', FALSE, TRUE, FALSE, 3, 'EUR', '€', 'dd/MM/yyyy', 'HH:mm', ',', '.', 90, 75, 'Bienvenido', 'system', 'system'),
 
--- Spanish
-(
-    'Spanish', 'Español', 'es', 'spa', 'es-ES', 'UTF-8', FALSE, TRUE, FALSE,
-    TRUE, FALSE, 3, 'Arial, sans-serif', 'EUR', '€',
-    'dd/MM/yyyy', 'HH:mm', '#.##0,00', ',', '.',
-    50, 40, FALSE, '¡Bienvenido a nuestro sistema de entretenimiento hotelero!',
-    'system'
-),
+    ('German', 'Deutsch', 'de', 'deu', 'de-DE', FALSE, TRUE, FALSE, 4, 'EUR', '€', 'dd.MM.yyyy', 'HH:mm', ',', '.', 85, 70, 'Willkommen', 'system', 'system'),
 
--- German
-(
-    'German', 'Deutsch', 'de', 'deu', 'de-DE', 'UTF-8', FALSE, TRUE, FALSE,
-    TRUE, FALSE, 4, 'Arial, sans-serif', 'EUR', '€',
-    'dd.MM.yyyy', 'HH:mm', '#.##0,00', ',', '.',
-    60, 45, FALSE, 'Willkommen zu unserem Hotel-Entertainment-System!',
-    'system'
-),
+    ('Italian', 'Italiano', 'it', 'ita', 'it-IT', FALSE, TRUE, FALSE, 5, 'EUR', '€', 'dd/MM/yyyy', 'HH:mm', ',', '.', 80, 65, 'Benvenuto', 'system', 'system'),
 
--- Italian
-(
-    'Italian', 'Italiano', 'it', 'ita', 'it-IT', 'UTF-8', FALSE, TRUE, FALSE,
-    TRUE, FALSE, 5, 'Arial, sans-serif', 'EUR', '€',
-    'dd/MM/yyyy', 'HH:mm', '#.##0,00', ',', '.',
-    40, 30, FALSE, 'Benvenuti nel nostro sistema di intrattenimento alberghiero!',
-    'system'
-);
+    ('Portuguese', 'Português', 'pt', 'por', 'pt-PT', FALSE, TRUE, FALSE, 6, 'EUR', '€', 'dd/MM/yyyy', 'HH:mm', ',', '.', 85, 60, 'Bem-vindo', 'system', 'system'),
+
+    ('Arabic', 'العربية', 'ar', 'ara', 'ar-SA', TRUE, TRUE, FALSE, 7, 'SAR', '﷼', 'dd/MM/yyyy', 'HH:mm', '.', ',', 70, 50, 'مرحبا', 'system', 'system'),
+
+    ('Russian', 'Русский', 'ru', 'rus', 'ru-RU', FALSE, TRUE, FALSE, 8, 'RUB', '₽', 'dd.MM.yyyy', 'HH:mm', ',', ' ', 75, 55, 'Добро пожаловать', 'system', 'system'),
+
+    ('Chinese (Simplified)', '简体中文', 'zh', 'zho', 'zh-CN', FALSE, TRUE, FALSE, 9, 'CNY', '¥', 'yyyy/MM/dd', 'HH:mm', '.', ',', 60, 40, '欢迎', 'system', 'system'),
+
+    ('Japanese', '日本語', 'ja', 'jpn', 'ja-JP', FALSE, TRUE, FALSE, 10, 'JPY', '¥', 'yyyy/MM/dd', 'HH:mm', '.', ',', 65, 45, 'ようこそ', 'system', 'system');
+
 
 -- Insert supported platforms for languages
 INSERT INTO language_supported_platforms (language_id, platform) VALUES

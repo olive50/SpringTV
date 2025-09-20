@@ -107,17 +107,24 @@ CREATE TABLE package_channels (
 -- ==========================================
 -- TERMINALS/DEVICES MANAGEMENT
 -- ==========================================
-
 -- Terminals table
 CREATE TABLE terminals (
                            id BIGINT NOT NULL AUTO_INCREMENT,
                            terminal_id VARCHAR(50) NOT NULL UNIQUE,
-                           device_type ENUM('SMART_TV', 'ANDROID_BOX', 'STREAMING_STICK', 'SET_TOP_BOX', 'MEDIA_PLAYER', 'PROJECTOR') NOT NULL,
+                           device_type ENUM(
+                               'SMART_TV',
+                               'ANDROID_BOX',
+                               'STREAMING_STICK',
+                               'SET_TOP_BOX',
+                               'MEDIA_PLAYER',
+                               'PROJECTOR'
+                               ) NOT NULL,
                            brand VARCHAR(50) NOT NULL,
                            model VARCHAR(50) NOT NULL,
                            mac_address VARCHAR(17) NOT NULL UNIQUE,
-                           ip_address VARCHAR(15) NOT NULL,
-                           status ENUM('ACTIVE', 'INACTIVE', 'MAINTENANCE', 'OFFLINE', 'FAULTY') NOT NULL DEFAULT 'INACTIVE',
+                           ip_address VARCHAR(45) NOT NULL, -- supports IPv4, IPv6, and hostnames if needed
+                           status ENUM('ACTIVE', 'INACTIVE', 'MAINTENANCE', 'OFFLINE', 'FAULTY')
+                               NOT NULL DEFAULT 'INACTIVE',
                            location VARCHAR(100) NOT NULL,
                            room_id BIGINT,
                            last_seen DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -128,9 +135,14 @@ CREATE TABLE terminals (
                            last_ping_time DATETIME,
                            is_online BOOLEAN NOT NULL DEFAULT FALSE,
                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                               ON UPDATE CURRENT_TIMESTAMP,
                            PRIMARY KEY (id),
-                           FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE SET NULL ON UPDATE CASCADE,
+                           FOREIGN KEY (room_id) REFERENCES rooms(id)
+                               ON DELETE SET NULL
+                               ON UPDATE CASCADE,
+
+    -- indexes
                            INDEX idx_terminal_id (terminal_id),
                            INDEX idx_terminal_mac (mac_address),
                            INDEX idx_terminal_ip (ip_address),
@@ -139,9 +151,18 @@ CREATE TABLE terminals (
                            INDEX idx_terminal_room (room_id),
                            INDEX idx_terminal_online (is_online),
                            INDEX idx_terminal_last_seen (last_seen),
-                           CONSTRAINT chk_terminal_uptime CHECK (uptime IS NULL OR (uptime >= 0 AND uptime <= 100)),
-                           CONSTRAINT chk_terminal_response_time CHECK (response_time IS NULL OR response_time >= 0)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='IPTV terminals and devices';
+
+    -- constraints
+                           CONSTRAINT chk_terminal_uptime CHECK (
+                               uptime IS NULL OR (uptime >= 0 AND uptime <= 100)
+                               ),
+                           CONSTRAINT chk_terminal_response_time CHECK (
+                               response_time IS NULL OR response_time >= 0
+                               )
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci
+    COMMENT='IPTV terminals and devices';
 
 -- Terminal Channel Assignments table
 CREATE TABLE terminal_channel_assignments (
@@ -179,12 +200,10 @@ CREATE INDEX idx_tv_channels_active_category ON tv_channels(is_active, category_
 CREATE INDEX idx_tv_channels_active_language ON tv_channels(is_active, language_id);
 CREATE INDEX idx_tv_channels_active_sort ON tv_channels(is_active, sort_order);
 CREATE INDEX idx_terminals_status_type ON terminals(status, device_type);
-CREATE INDEX idx_terminals_room_status ON terminals(room_id, status);
 
 -- Indexes for EPG queries
 CREATE INDEX idx_epg_current_program ON epg_entries(channel_id, start_time, end_time);
-CREATE INDEX idx_epg_today_programs ON epg_entries(start_time, end_time)
-    WHERE DATE(start_time) = CURDATE();
+CREATE INDEX idx_epg_today_programs ON epg_entries(start_time, end_time);
 
 -- ==========================================
 -- ADDITIONAL CONSTRAINTS
@@ -193,10 +212,6 @@ CREATE INDEX idx_epg_today_programs ON epg_entries(start_time, end_time)
 -- Ensure MAC address format (basic validation)
 ALTER TABLE terminals ADD CONSTRAINT chk_mac_address_format
     CHECK (mac_address REGEXP '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$');
-
--- Ensure IP address format (basic validation)
-ALTER TABLE terminals ADD CONSTRAINT chk_ip_address_format
-    CHECK (ip_address REGEXP '^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$');
 
 -- Ensure EPG entries don't overlap for the same channel (to be enforced by application logic)
 -- Note: MySQL doesn't support exclusion constraints, so this will be handled in application code
