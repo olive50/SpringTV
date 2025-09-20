@@ -1,12 +1,17 @@
 package com.tvboot.tivio.room;
 
+import com.tvboot.tivio.dto.TvChannelDTO;
+import com.tvboot.tivio.dto.TvChannelStatsDTO;
 import com.tvboot.tivio.room.dto.RoomRequest;
 import com.tvboot.tivio.room.dto.RoomResponse;
+import com.tvboot.tivio.room.dto.RoomStatsDTO;
 import com.tvboot.tivio.room.dto.RoomSummary;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -41,16 +46,24 @@ public class RoomController {
 
     @GetMapping
     public ResponseEntity<Page<RoomResponse>> getAllRooms(
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 5) Pageable pageable) {
         Page<RoomResponse> response = roomService.getAllRooms(pageable);
         return ResponseEntity.ok(response);
     }
 
+   
     @GetMapping("/available")
     public ResponseEntity<List<RoomSummary>> getAvailableRooms() {
         List<RoomSummary> response = roomService.getAvailableRooms();
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/statistics")
+    public ResponseEntity<RoomStatsDTO> getRoomStats() {
+        RoomStatsDTO stats = roomService.getRoomStatistics();
+        return ResponseEntity.ok(stats);
+    }
+
 
     @PutMapping("/{id}")
     public ResponseEntity<RoomResponse> updateRoom(

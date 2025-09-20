@@ -1,0 +1,125 @@
+# ===================================================================
+# TVBOOT IPTV Platform - Production Profile Configuration
+# ===================================================================
+
+spring:
+  # ==========================================
+  # DATABASE CONFIGURATION (PROD)
+  # ==========================================
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/iptv_platform_prod?useSSL=true&requireSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&useUnicode=true&characterEncoding=utf8mb4
+    username: ${DB_USERNAME:prod_user}
+    password: ${DB_PASSWORD:prod_pass}
+    hikari:
+      pool-name: TivioHikariPoolProd
+      maximum-pool-size: 30       # bigger pool for production load
+      minimum-idle: 5
+      idle-timeout: 600000
+      connection-timeout: 30000
+      max-lifetime: 1800000
+      validation-timeout: 5000
+      leak-detection-threshold: 0 # disabled in production for performance
+      register-mbeans: true
+
+  # ==========================================
+  # JPA & HIBERNATE CONFIGURATION (PROD)
+  # ==========================================
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: none     # ?? never auto-update schema in production
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+        jdbc.batch_size: 50
+        order_inserts: true
+        order_updates: true
+
+  # ==========================================
+  # FLYWAY CONFIGURATION (PROD)
+  # ==========================================
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    validate-on-migrate: true
+    clean-disabled: true   # ?? prevent accidental drop in prod
+    encoding: UTF-8
+    connect-retries: 5
+
+# ==========================================
+# SERVER CONFIGURATION (PROD)
+# ==========================================
+server:
+  port: 8080
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+    min-response-size: 1024
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+
+# ==========================================
+# LOGGING CONFIGURATION (PROD)
+# ==========================================
+logging:
+  level:
+    root: INFO
+    com.tvboot.tivio: INFO
+    org.springframework: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.type: WARN
+  file:
+    path: logs
+    name: logs/tvboot-prod.log
+  logback:
+    rollingpolicy:
+      max-file-size: 200MB
+      max-history: 14
+      total-size-cap: 2GB
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"
+
+# ==========================================
+# ACTUATOR CONFIGURATION (PROD)
+# ==========================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+  security:
+    enabled: true
+
+# ==========================================
+# APP CUSTOM CONFIGURATION (PROD)
+# ==========================================
+app:
+  jwtSecret: ${JWT_SECRET}   # ?? must be provided securely
+  jwtExpirationMs: 86400000
+  upload:
+    logos:
+      path: uploads/logos/channels/
+      max-size: 5242880
+  cdn:
+    enabled: true
+    base-url: ${CDN_URL:https://cdn.myhotel.tv}
+    logos-path: /logos/channels
+
+# ==========================================
+# SWAGGER/OPENAPI CONFIGURATION (PROD)
+# ==========================================
+springdoc:
+  api-docs:
+    enabled: false   # ?? disable in prod for security
+  swagger-ui:
+    enabled: false

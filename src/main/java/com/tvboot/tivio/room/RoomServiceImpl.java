@@ -1,9 +1,12 @@
 package com.tvboot.tivio.room;
 
 
+import com.tvboot.tivio.dto.TvChannelStatsDTO;
+import com.tvboot.tivio.exception.ResourceAlreadyExistsException;
 import com.tvboot.tivio.exception.ResourceNotFoundException;
 import com.tvboot.tivio.room.dto.RoomRequest;
 import com.tvboot.tivio.room.dto.RoomResponse;
+import com.tvboot.tivio.room.dto.RoomStatsDTO;
 import com.tvboot.tivio.room.dto.RoomSummary;
 import com.tvboot.tivio.room.exception.RoomAlreadyExistsException;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,7 +36,7 @@ public class RoomServiceImpl implements RoomService {
         log.info("Creating new room with number: {}", roomRequest.getRoomNumber());
 
         if (roomRepository.existsByRoomNumber(roomRequest.getRoomNumber())) {
-            throw new RoomAlreadyExistsException("Room with number " + roomRequest.getRoomNumber() + " already exists");
+            throw new ResourceAlreadyExistsException("Room with number " + roomRequest.getRoomNumber() + " already exists");
         }
 
         Room room = roomMapper.toEntity(roomRequest);
@@ -200,5 +205,42 @@ public class RoomServiceImpl implements RoomService {
         // room.setChannelPackage(null); // Uncomment when ChannelPackage is implemented
         Room updatedRoom = roomRepository.save(room);
         return roomMapper.toResponse(updatedRoom);
+    }
+
+    public RoomStatsDTO getRoomStatistics() {
+        // Get basic counts
+        int totalRooms = roomRepository.countAllRooms();
+        int available = roomRepository.countAvailableRooms();
+        int occupied = roomRepository.countOccupiedRooms();
+        int maintenance = roomRepository.countMaintenanceRooms();
+        Double occupancy = roomRepository.findAverageOccupancy();
+
+
+
+//        // Get category statistics
+//        Map<String, Long> categoryStats = new HashMap<>();
+//        List<Object[]> categoryResults = tvChannelRepository.countByCategory();
+//        for (Object[] result : categoryResults) {
+//            String categoryName = (String) result[0];
+//            Long count = (Long) result[1];
+//            categoryStats.put(categoryName, count);
+//        }
+
+        // Get language statistics
+//        Map<String, Long> languageStats = new HashMap<>();
+//        List<Object[]> languageResults = tvChannelRepository.countByLanguage();
+//        for (Object[] result : languageResults) {
+//            String languageName = (String) result[0];
+//            Long count = (Long) result[1];
+//            languageStats.put(languageName, count);
+//        }
+
+        return RoomStatsDTO.builder()
+                .total(totalRooms)
+                .available(available)
+                .maintenance(maintenance)
+                .occupied(occupied)
+                .occupancy(occupancy)
+                .build();
     }
 }

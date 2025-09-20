@@ -2,6 +2,7 @@ package com.tvboot.tivio.room;
 
 import com.tvboot.tivio.room.dto.RoomRequest;
 import com.tvboot.tivio.room.dto.RoomResponse;
+import com.tvboot.tivio.room.dto.RoomStatsDTO;
 import com.tvboot.tivio.room.dto.RoomSummary;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,4 +43,5 @@ public interface RoomService {
     RoomResponse assignChannelPackage(Long roomId, Long channelPackageId);
 
     RoomResponse removeChannelPackage(Long roomId);
+    RoomStatsDTO getRoomStatistics();
 }

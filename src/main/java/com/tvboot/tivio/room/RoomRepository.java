@@ -43,8 +43,8 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     @Query("SELECT r FROM Room r JOIN r.terminals t WHERE t.id = :terminalId")
     Optional<Room> findByTerminalId(@Param("terminalId") Long terminalId);
 
-//    @Query("SELECT r FROM Room r JOIN r.terminals t WHERE t.terminalNumber = :terminalNumber")
-//    Optional<Room> findByTerminalNumber(@Param("terminalNumber") String terminalNumber);
+    @Query("SELECT r FROM Room r JOIN r.terminals t WHERE t.terminalId = :terminalNumber")
+    Optional<Room> findByTerminalNumber(@Param("terminalNumber") String terminalNumber);
 
     @Query("SELECT r FROM Room r WHERE r.id IN (SELECT t.room.id FROM Terminal t WHERE t.status = :status)")
     List<Room> findByTerminalStatus(@Param("status") String status);
@@ -53,41 +53,43 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     // Basic count methods
     @Query("SELECT COUNT(r) FROM Room r WHERE r.status = 'AVAILABLE'")
-    long countAvailableRooms();
+    int countAvailableRooms();
 
     @Query("SELECT COUNT(r) FROM Room r WHERE r.status = 'OCCUPIED'")
-    long countOccupiedRooms();
+    int countOccupiedRooms();
 
-//    @Query("SELECT COUNT(r) FROM Room r WHERE r.status IN ('MAINTENANCE', 'OUT_OF_ORDER')")
-//    long countMaintenanceRooms();
+    @Query("SELECT COUNT(r) FROM Room r WHERE r.status = 'MAINTENANCE'")
+    int countMaintenanceRooms();
+
+  
 
     @Query("SELECT COUNT(r) FROM Room r WHERE r.status = 'CLEANING'")
-    long countCleaningRooms();
+    int countCleaningRooms();
 
     // Count by room type
     @Query("SELECT COUNT(r) FROM Room r WHERE r.roomType = :roomType")
-    long countByRoomType(@Param("roomType") Room.RoomType roomType);
+    int countByRoomType(@Param("roomType") Room.RoomType roomType);
 
     @Query("SELECT COUNT(r) FROM Room r WHERE r.roomType = :roomType AND r.status = 'AVAILABLE'")
-    long countAvailableByRoomType(@Param("roomType") Room.RoomType roomType);
+    int countAvailableByRoomType(@Param("roomType") Room.RoomType roomType);
 
     // Count by building
     @Query("SELECT COUNT(r) FROM Room r WHERE r.building = :building")
-    long countByBuilding(@Param("building") String building);
+    int countByBuilding(@Param("building") String building);
 
     @Query("SELECT COUNT(r) FROM Room r WHERE r.building = :building AND r.status = 'AVAILABLE'")
-    long countAvailableByBuilding(@Param("building") String building);
+    int countAvailableByBuilding(@Param("building") String building);
 
     // Count by floor
     @Query("SELECT COUNT(r) FROM Room r WHERE r.floorNumber = :floorNumber")
-    long countByFloorNumber(@Param("floorNumber") Integer floorNumber);
+    int countByFloorNumber(@Param("floorNumber") Integer floorNumber);
 
     @Query("SELECT COUNT(r) FROM Room r WHERE r.floorNumber = :floorNumber AND r.status = 'AVAILABLE'")
-    long countAvailableByFloorNumber(@Param("floorNumber") Integer floorNumber);
+    int countAvailableByFloorNumber(@Param("floorNumber") Integer floorNumber);
 
     // Count by price range
     @Query("SELECT COUNT(r) FROM Room r WHERE r.pricePerNight BETWEEN :minPrice AND :maxPrice")
-    long countByPriceRange(@Param("minPrice") BigDecimal minPrice,
+    int countByPriceRange(@Param("minPrice") BigDecimal minPrice,
                            @Param("maxPrice") BigDecimal maxPrice);
 
     @Query("SELECT COUNT(r) FROM Room r WHERE r.pricePerNight BETWEEN :minPrice AND :maxPrice AND r.status = 'AVAILABLE'")
@@ -95,8 +97,8 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
                                     @Param("maxPrice") BigDecimal maxPrice);
 
 //    // Count by occupancy
-//    @Query("SELECT COUNT(r) FROM Room r WHERE r.capacity >= :minOccupancy")
-//    long countByMinOccupancy(@Param("minOccupancy") Integer minOccupancy);
+    @Query("SELECT COUNT(r) FROM Room r WHERE r.capacity >= :minOccupancy")
+    int countByMinOccupancy(@Param("minOccupancy") Integer minOccupancy);
 //
 //    @Query("SELECT COUNT(r) FROM Room r WHERE r.capacity <= :capacity")
 //    long countByMaxOccupancy(@Param("capacity") Integer capacity);
@@ -110,24 +112,24 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     long countWithChannelPackage();
 
     @Query("SELECT COUNT(r) FROM Room r WHERE r.channelPackage IS NULL")
-    long countWithoutChannelPackage();
+    int countWithoutChannelPackage();
 
     @Query("SELECT COUNT(r) FROM Room r WHERE r.channelPackage IS NOT NULL AND r.status = 'AVAILABLE'")
-    long countAvailableWithChannelPackage();
+    int countAvailableWithChannelPackage();
 
     // Count with terminals
     @Query("SELECT COUNT(r) FROM Room r WHERE SIZE(r.terminals) > 0")
-    long countWithTerminals();
+    int countWithTerminals();
 
     @Query("SELECT COUNT(r) FROM Room r WHERE SIZE(r.terminals) = 0")
-    long countWithoutTerminals();
+    int countWithoutTerminals();
 
     @Query("SELECT COUNT(r) FROM Room r WHERE SIZE(r.terminals) > :minTerminals")
-    long countWithMinTerminals(@Param("minTerminals") int minTerminals);
+    int countWithMinTerminals(@Param("minTerminals") int minTerminals);
 
     // Statistical methods
     @Query("SELECT COUNT(r) FROM Room r")
-    long countAllRooms();
+    int countAllRooms();
 
     @Query("SELECT AVG(r.pricePerNight) FROM Room r WHERE r.status = 'AVAILABLE'")
     Double findAveragePriceOfAvailableRooms();
@@ -138,16 +140,16 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     @Query("SELECT MIN(r.pricePerNight) FROM Room r WHERE r.status = 'AVAILABLE'")
     BigDecimal findMinPriceOfAvailableRooms();
 //
-//    @Query("SELECT AVG(r.capacity) FROM Room r")
-//    Double findAverageOccupancy();
+  @Query("SELECT AVG(r.capacity) FROM Room r")
+    Double findAverageOccupancy();
 
     // Search count methods
     @Query("SELECT COUNT(r) FROM Room r WHERE r.roomNumber LIKE %:searchTerm% OR r.building LIKE %:searchTerm% OR r.description LIKE %:searchTerm%")
-    long countSearchResults(@Param("searchTerm") String searchTerm);
+    int countSearchResults(@Param("searchTerm") String searchTerm);
 
     // Count by multiple criteria
     @Query("SELECT COUNT(r) FROM Room r WHERE r.building = :building AND r.floorNumber = :floorNumber AND r.status = 'AVAILABLE'")
-    long countAvailableByBuildingAndFloor(@Param("building") String building,
+    int countAvailableByBuildingAndFloor(@Param("building") String building,
                                           @Param("floorNumber") Integer floorNumber);
 
 //    @Query("SELECT COUNT(r) FROM Room r WHERE r.roomType = :roomType AND r.capacity >= :minOccupancy AND r.status = 'AVAILABLE'")

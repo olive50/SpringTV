@@ -1,0 +1,164 @@
+# ===================================================================
+# TVBOOT IPTV Platform - Base Configuration
+# ===================================================================
+
+spring:
+  application:
+    name: tivio-iptv-platform
+
+  profiles:
+    active: dev
+
+  # ==========================================
+  # DATABASE CONFIGURATION
+  # ==========================================
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/iptv_platform?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&useUnicode=true&characterEncoding=utf8mb4
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+
+  # ==========================================
+  # JPA & HIBERNATE CONFIGURATION
+  # ==========================================
+  jpa:
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+
+  # ==========================================
+  # FLYWAY CONFIGURATION
+  # ==========================================
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+    clean-disabled: false
+
+  # ==========================================
+  # MULTIPART (FILE UPLOAD)
+  # ==========================================
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 5MB
+      max-request-size: 10MB
+      file-size-threshold: 1KB
+
+  # ==========================================
+  # DEVTOOLS CONFIGURATION
+  # ==========================================
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+
+  # ==========================================
+  # JACKSON CONFIGURATION
+  # ==========================================
+  jackson:
+    serialization:
+      indent-output: true
+      write-dates-as-timestamps: false
+    time-zone: UTC
+
+  # ==========================================
+  # CACHE CONFIGURATION
+  # ==========================================
+  cache:
+    type: simple
+
+  # ==========================================
+  # VALIDATION CONFIGURATION
+  # ==========================================
+  web:
+    resources:
+      add-mappings: false
+
+# ==========================================
+# SERVER CONFIGURATION
+# ==========================================
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: on_param
+    include-exception: true
+  compression:
+    enabled: false
+
+# ==========================================
+# ACTUATOR CONFIGURATION
+# ==========================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true
+  health:
+    db:
+      enabled: true
+
+# ==========================================
+# LOGGING CONFIGURATION
+# ==========================================
+logging:
+  level:
+    root: INFO
+    com.tvboot.tivio: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.web: DEBUG
+  file:
+    name: logs/tvboot-dev.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"
+
+# ==========================================
+# APP CUSTOM CONFIGURATION
+# ==========================================
+app:
+  jwtSecret: myVeryLongSecretKeyForDevelopmentThatIsAtLeast32CharactersLong
+  jwtExpirationMs: 86400000
+  upload:
+    logos:
+      path: uploads/logos/channels/
+      max-size: 5242880
+  cdn:
+    enabled: false
+    base-url: http://localhost:8080
+    logos-path: /uploads/logos/channels
+
+# ==========================================
+# SWAGGER/OPENAPI CONFIGURATION
+# ==========================================
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  packages-to-scan: com.tvboot.tivio.controller
