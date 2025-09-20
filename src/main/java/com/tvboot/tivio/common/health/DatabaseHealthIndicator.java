@@ -1,4 +1,4 @@
-package com.tvboot.tivio.health;
+package com.tvboot.tivio.common.health;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

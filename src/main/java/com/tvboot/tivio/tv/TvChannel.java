@@ -41,6 +41,9 @@ public class TvChannel  {
     @Column(name = "port")
     private int port;
 
+    @Column(nullable = false)
+    private String streamUrl; // future if udp stream brocken , internet stream url or other...
+
     @ManyToOne(cascade = CascadeType.PERSIST)
     @JoinColumn(name = "category_id")
     private TvChannelCategory category;
@@ -54,6 +57,24 @@ public class TvChannel  {
     @Column(name = "logo_path")
     private String logoPath;
 
+    @Column(name = "is_active",nullable = false)
+    private Boolean isActive = true;
+
+
+    @Column(name = "is_hd",nullable = true)
+    private Boolean isHD = false;
+
+
+    // Hotel-specific fields
+    @Column(name = "is_avialable",nullable = true)
+    private Boolean isAvailable = true;
+
+    @Column(nullable = false)
+    private Integer sortOrder = 0;
+
+    @Column(name = "coment")
+    private String comment;
+
     @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -66,8 +87,7 @@ public class TvChannel  {
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<EpgEntry> epg = new ArrayList<>();
 
-    @Column(name = "is_active")
-    private boolean active;
+
 //    @Column(name = "is_available")
 //    private boolean available;
 }

@@ -110,31 +110,40 @@ CREATE TABLE tv_channel_categories (
 
                                        INDEX idx_categories_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 CREATE TABLE tv_channels (
                              id BIGINT PRIMARY KEY AUTO_INCREMENT,
-                             channel_number INT NOT NULL UNIQUE,
-                             name VARCHAR(100) NOT NULL,
+                             channel_number INT UNIQUE NOT NULL,
+                             name VARCHAR(255) NOT NULL,
                              description TEXT,
-                             ip VARCHAR(45) NOT NULL,
-                             port INT NOT NULL,
-                             logo_url VARCHAR(200),
-                             logo_path VARCHAR(200),
+                             ip VARCHAR(255),
+                             port INT,
+                             stream_url VARCHAR(255) NOT NULL,
                              category_id BIGINT,
-                             language_id BIGINT UNSIGNED,  -- Matches languages.id type
-                             is_active BOOLEAN DEFAULT TRUE,
-                             created_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6),
-                             updated_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+                             language_id BIGINT UNSIGNED,  -- Changed to match languages.id type
+                             logo_url VARCHAR(255),
+                             logo_path VARCHAR(255),
+                             is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                             is_hd BOOLEAN DEFAULT FALSE,
+                             is_avialable BOOLEAN DEFAULT TRUE,
+                             sort_order INT NOT NULL DEFAULT 0,
+                             coment TEXT,
+                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-                             CONSTRAINT fk_channels_category FOREIGN KEY (category_id) REFERENCES tv_channel_categories(id) ON DELETE SET NULL ON UPDATE CASCADE,
-                             CONSTRAINT fk_channels_language FOREIGN KEY (language_id) REFERENCES languages(id) ON DELETE SET NULL ON UPDATE CASCADE,
-
-                             UNIQUE KEY unique_ip_port (ip, port),
-                             INDEX idx_channels_number (channel_number),
-                             INDEX idx_channels_category (category_id),
-                             INDEX idx_channels_language (language_id),
-                             INDEX idx_channels_name (name)
+    -- Foreign key constraints
+                             CONSTRAINT fk_tv_channel_category FOREIGN KEY (category_id)
+                                 REFERENCES tv_channel_categories(id) ON DELETE SET NULL,
+                             CONSTRAINT fk_tv_channel_language FOREIGN KEY (language_id)
+                                 REFERENCES languages(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Create indexes for better performance
+CREATE INDEX idx_tv_channel_number ON tv_channels(channel_number);
+CREATE INDEX idx_tv_channel_category ON tv_channels(category_id);
+CREATE INDEX idx_tv_channel_language ON tv_channels(language_id);
+CREATE INDEX idx_tv_channel_active ON tv_channels(is_active);
+CREATE INDEX idx_tv_channel_sort_order ON tv_channels(sort_order);
+
 
 CREATE TABLE epg_entries (
                              id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -604,15 +613,6 @@ INSERT INTO tv_channel_categories (name, description, icon_url) VALUES
                                                                     ('Music', 'Music and concert channels', 'fas fa-music'),
                                                                     ('Lifestyle', 'Cooking, travel and lifestyle channels', 'fas fa-utensils');
 
--- TV Channels
-INSERT INTO tv_channels (channel_number, name, description, ip, port, category_id, language_id) VALUES
-                                                                                                    (101, 'CNN International', 'International news channel', '192.168.1.100', 8001, 1, 1),
-                                                                                                    (102, 'BBC World News', 'British international news channel', '192.168.1.101', 8002, 1, 1),
-                                                                                                    (103, 'Al Jazeera English', 'Qatari international news channel', '192.168.1.102', 8003, 1, 1),
-                                                                                                    (201, 'ESPN', 'Sports channel', '192.168.1.103', 8004, 2, 1),
-                                                                                                    (202, 'beIN Sports', 'International sports channel', '192.168.1.104', 8005, 2, 1),
-                                                                                                    (301, 'HBO', 'Entertainment channel', '192.168.1.105', 8006, 3, 1),
-                                                                                                    (302, 'Netflix', 'Streaming entertainment', '192.168.1.106', 8007, 3, 1);
 
 -- ===================================================================
 -- MIGRATION COMPLETE

@@ -1,6 +1,5 @@
 package com.tvboot.tivio.guest;
 
-import com.tvboot.tivio.entities.Reservation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

@@ -1,7 +1,6 @@
 package com.tvboot.tivio.guest;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.tvboot.tivio.entities.Reservation;
 import com.tvboot.tivio.room.Room;
 import jakarta.persistence.*;
 import lombok.*;

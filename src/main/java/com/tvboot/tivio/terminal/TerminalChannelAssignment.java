@@ -1,6 +1,5 @@
-package com.tvboot.tivio.entities;
+package com.tvboot.tivio.terminal;
 
-import com.tvboot.tivio.terminal.Terminal;
 import com.tvboot.tivio.tv.TvChannel;
 import jakarta.persistence.*;
 import lombok.*;

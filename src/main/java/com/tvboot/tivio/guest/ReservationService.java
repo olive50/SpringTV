@@ -1,6 +1,5 @@
 package com.tvboot.tivio.guest;
 
-import com.tvboot.tivio.entities.Reservation;
 import com.tvboot.tivio.room.Room;
 import com.tvboot.tivio.room.RoomRepository;
 import lombok.RequiredArgsConstructor;

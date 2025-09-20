@@ -1,4 +1,4 @@
-package com.tvboot.tivio.entities;
+package com.tvboot.tivio.ads;
 
 public class Ads {
 }

@@ -1,6 +1,7 @@
 package com.tvboot.tivio.tv;
 
 import com.tvboot.tivio.common.audit.Auditable;
+import com.tvboot.tivio.common.dto.respone.TvBootHttpResponse;
 import com.tvboot.tivio.tv.dto.TvChannelCreateDTO;
 import com.tvboot.tivio.tv.dto.TvChannelDTO;
 import com.tvboot.tivio.tv.dto.TvChannelStatsDTO;
@@ -10,6 +11,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.Validator;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,6 +75,10 @@ public class TvChannelController {
         Page<TvChannelDTO> channels = tvChannelService.getAllChannels(pageable);
         return ResponseEntity.ok(channels);
     }
+
+    /**
+     * Get all channels with pagination
+     */
 
     @GetMapping("/{id}")
     public ResponseEntity<TvChannelDTO> getChannelById(@PathVariable Long id) {

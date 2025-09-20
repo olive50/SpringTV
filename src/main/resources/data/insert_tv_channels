@@ -1,0 +1,36 @@
+-- Insert 25 TV Channels with realistic data
+INSERT INTO tv_channels (channel_number, name, description, ip, port, stream_url, category_id, language_id, logo_url, is_active, is_hd, is_available, sort_order) VALUES
+-- News Channels (1-5)
+(101, 'CNN International', 'Global news coverage 24/7', '192.168.1.101', 8001, 'udp://@192.168.1.101:8001', 1, 1, 'https://logo.clearbit.com/cnn.com', TRUE, TRUE, TRUE, 1),
+(102, 'BBC World News', 'British international news channel', '192.168.1.102', 8002, 'udp://@192.168.1.102:8002', 1, 1, 'https://logo.clearbit.com/bbc.com', TRUE, TRUE, TRUE, 2),
+(103, 'Al Jazeera English', 'Qatari international news channel', '192.168.1.103', 8003, 'udp://@192.168.1.103:8003', 1, 1, 'https://logo.clearbit.com/aljazeera.com', TRUE, TRUE, TRUE, 3),
+(104, 'Sky News', 'UK-based news channel', '192.168.1.104', 8004, 'udp://@192.168.1.104:8004', 1, 1, 'https://logo.clearbit.com/sky.com', TRUE, TRUE, TRUE, 4),
+(105, 'France 24 English', 'French international news', '192.168.1.105', 8005, 'udp://@192.168.1.105:8005', 1, 1, 'https://logo.clearbit.com/france24.com', TRUE, TRUE, TRUE, 5),
+
+-- Sports Channels (6-10)
+(201, 'ESPN', 'Worldwide sports entertainment', '192.168.1.201', 8101, 'udp://@192.168.1.201:8101', 2, 1, 'https://logo.clearbit.com/espn.com', TRUE, TRUE, TRUE, 6),
+(202, 'beIN Sports', 'International sports coverage', '192.168.1.202', 8102, 'udp://@192.168.1.202:8102', 2, 1, 'https://logo.clearbit.com/beinsports.com', TRUE, TRUE, TRUE, 7),
+(203, 'Sky Sports Main Event', 'Premier sports coverage', '192.168.1.203', 8103, 'udp://@192.168.1.203:8103', 2, 1, 'https://logo.clearbit.com/skysports.com', TRUE, TRUE, TRUE, 8),
+(204, 'NBA TV', 'Basketball games and analysis', '192.168.1.204', 8104, 'udp://@192.168.1.204:8104', 2, 1, 'https://logo.clearbit.com/nba.com', TRUE, TRUE, TRUE, 9),
+(205, 'Eurosport 1', 'Pan-European sports channel', '192.168.1.205', 8105, 'udp://@192.168.1.205:8105', 2, 1, 'https://logo.clearbit.com/eurosport.com', TRUE, TRUE, TRUE, 10),
+
+-- Entertainment Channels (11-15)
+(301, 'HBO', 'Premium movies and series', '192.168.1.301', 8201, 'udp://@192.168.1.301:8201', 3, 1, 'https://logo.clearbit.com/hbo.com', TRUE, TRUE, TRUE, 11),
+(302, 'Showtime', 'Original series and movies', '192.168.1.302', 8202, 'udp://@192.168.1.302:8202', 3, 1, 'https://logo.clearbit.com/sho.com', TRUE, TRUE, TRUE, 12),
+(303, 'Star Movies', 'Hollywood blockbusters', '192.168.1.303', 8203, 'udp://@192.168.1.303:8203', 3, 1, 'https://logo.clearbit.com/star.com', TRUE, TRUE, TRUE, 13),
+(304, 'FX', 'Original drama series', '192.168.1.304', 8204, 'udp://@192.168.1.304:8204', 3, 1, 'https://logo.clearbit.com/fxnetworks.com', TRUE, TRUE, TRUE, 14),
+(305, 'AMC', 'Award-winning original series', '192.168.1.305', 8205, 'udp://@192.168.1.305:8205', 3, 1, 'https://logo.clearbit.com/amc.com', TRUE, TRUE, TRUE, 15),
+
+-- Kids Channels (16-20)
+(401, 'Cartoon Network', 'Animation for all ages', '192.168.1.401', 8301, 'udp://@192.168.1.401:8301', 4, 1, 'https://logo.clearbit.com/cartoonnetwork.com', TRUE, FALSE, TRUE, 16),
+(402, 'Disney Channel', 'Family entertainment', '192.168.1.402', 8302, 'udp://@192.168.1.402:8302', 4, 1, 'https://logo.clearbit.com/disney.com', TRUE, FALSE, TRUE, 17),
+(403, 'Nickelodeon', 'Kids and family programming', '192.168.1.403', 8303, 'udp://@192.168.1.403:8303', 4, 1, 'https://logo.clearbit.com/nick.com', TRUE, FALSE, TRUE, 18),
+(404, 'Boomerang', 'Classic cartoons', '192.168.1.404', 8304, 'udp://@192.168.1.404:8304', 4, 1, 'https://logo.clearbit.com/boomerang.com', TRUE, FALSE, TRUE, 19),
+(405, 'Discovery Kids', 'Educational entertainment', '192.168.1.405', 8305, 'udp://@192.168.1.405:8305', 4, 1, 'https://logo.clearbit.com/discovery.com', TRUE, FALSE, TRUE, 20),
+
+-- Documentary Channels (21-25)
+(501, 'National Geographic', 'Science and exploration', '192.168.1.501', 8401, 'udp://@192.168.1.501:8401', 5, 1, 'https://logo.clearbit.com/nationalgeographic.com', TRUE, TRUE, TRUE, 21),
+(502, 'Discovery Channel', 'Documentaries and reality', '192.168.1.502', 8402, 'udp://@192.168.1.502:8402', 5, 1, 'https://logo.clearbit.com/discovery.com', TRUE, TRUE, TRUE, 22),
+(503, 'History Channel', 'Historical documentaries', '192.168.1.503', 8403, 'udp://@192.168.1.503:8403', 5, 1, 'https://logo.clearbit.com/history.com', TRUE, TRUE, TRUE, 23),
+(504, 'Animal Planet', 'Wildlife and nature', '192.168.1.504', 8404, 'udp://@192.168.1.504:8404', 5, 1, 'https://logo.clearbit.com/animalplanet.com', TRUE, TRUE, TRUE, 24),
+(505, 'Science Channel', 'Scientific discoveries', '192.168.1.505', 8405, 'udp://@192.168.1.505:8405', 5, 1, 'https://logo.clearbit.com/sciencechannel.com', TRUE, TRUE, TRUE, 25);

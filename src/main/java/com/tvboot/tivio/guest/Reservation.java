@@ -1,6 +1,5 @@
-package com.tvboot.tivio.entities;
+package com.tvboot.tivio.guest;
 
-import com.tvboot.tivio.guest.Guest;
 import com.tvboot.tivio.room.Room;
 import jakarta.persistence.*;
 import lombok.*;

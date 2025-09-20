@@ -1,4 +1,4 @@
-package com.tvboot.tivio.metrics;
+package com.tvboot.tivio.common.metrics;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;

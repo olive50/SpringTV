@@ -1,0 +1,19 @@
+meta {
+  name: GET language for gests
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:8080/api/channels
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc1ODM2NjA2NSwiZXhwIjoxNzU4NDUyNDY1fQ.cEZIEs-o4GIjaGKOMcf3k2OT1iLTyKyQN3pM6QOE1Cm1LUQKZyr3z1aYsgwmCyhY9GPnI5C1Spds3e1J04NmJw
+}
+
+settings {
+  encodeUrl: true
+}
