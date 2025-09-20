@@ -40,7 +40,7 @@ import java.util.Map;
 public class TvChannelController {
 
     private final TvChannelService tvChannelService;
-    private final TvChannelService2 tvChannelService2;
+
     @Autowired
     private Validator validator;
 
