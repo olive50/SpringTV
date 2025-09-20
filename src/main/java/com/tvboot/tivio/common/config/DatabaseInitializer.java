@@ -514,6 +514,7 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .description("International news channel")
                                 .ip("192.168.1.100")
                                 .port(8001)
+                                .sortOrder(1)
                                 .category(news)
                                 .language(english)
                                 .build(),
@@ -523,6 +524,7 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .description("British news channel")
                                 .ip("192.168.1.101")
                                 .port(8002)
+                                .sortOrder(2)
                                 .category(news)
                                 .language(english)
                                 .build(),
@@ -532,6 +534,7 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .description("Sports entertainment channel")
                                 .ip("192.168.1.103")
                                 .port(8004)
+                                .sortOrder(3)
                                 .category(sports)
                                 .language(english)
                                 .build()

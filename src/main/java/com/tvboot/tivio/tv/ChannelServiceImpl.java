@@ -41,18 +41,11 @@ public class ChannelServiceImpl implements ChannelService{
     public Page<TvChannel> getGuestChannels(int page, int size) {
         log.debug("Getting guest channels - page: {}, size: {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
-        return channelRepository.findByIsActiveTrueAndIsAvailableForGuestsTrueOrderBySortOrderAscNameAsc(
+        return channelRepository.findByIsActiveTrueAndIsAvailableTrueOrderBySortOrderAscNameAsc(
                 pageable);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<TvChannel> getPremiumChannels(int page, int size) {
-        log.debug("Getting premium channels - page: {}, size: {}", page, size);
-        Pageable pageable = PageRequest.of(page, size);
-        return channelRepository.findByIsActiveTrueAndIsPremiumTrueOrderBySortOrderAscNameAsc(
-                pageable);
-    }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -82,14 +75,14 @@ public class ChannelServiceImpl implements ChannelService{
     @Transactional(readOnly = true)
     public long countChannelsByCategory(String category) {
         log.debug("Counting channels by category: {}", category);
-        return channelRepository.countByIsActiveTrueAndCategory(category);
+        return channelRepository.countByIsActiveTrueAndCategory_name(category);
     }
 
     @Override
     @Transactional(readOnly = true)
     public long countGuestChannels() {
         log.debug("Counting guest channels");
-        return channelRepository.countByIsActiveTrueAndIsAvailableForGuestsTrue();
+        return channelRepository.countByIsActiveTrueAndIsAvailableTrue();
     }
 
     @Override

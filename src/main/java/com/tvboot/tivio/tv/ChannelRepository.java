@@ -1,6 +1,7 @@
 package com.tvboot.tivio.tv;
 
 
+import com.tvboot.tivio.tv.tvcategory.TvChannelCategory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,21 +23,18 @@ public interface ChannelRepository extends JpaRepository<TvChannel, Long> {
     // Count methods
     long countByIsActiveTrue();
 
-    long countByIsActiveTrueAndCategory(String category);
+//    long countByIsActiveTrueAndCategory(TvChannelCategory category);
+    long countByIsActiveTrueAndCategory_name(String categoryName);
 
     // Find by category with pagination
     Page<TvChannel> findByIsActiveTrueAndCategoryOrderBySortOrderAscNameAsc(
             String category, Pageable pageable);
 
     // Find channels available for guests
-    Page<TvChannel> findByIsActiveTrueAndIsAvailableForGuestsTrueOrderBySortOrderAscNameAsc(
-            Pageable pageable);
 
-    long countByIsActiveTrueAndIsAvailableForGuestsTrue();
+    long countByIsActiveTrueAndIsAvailableTrue();
 
-    // Find premium channels
-    Page<TvChannel> findByIsActiveTrueAndIsPremiumTrueOrderBySortOrderAscNameAsc(
-            Pageable pageable);
+
 
     // Find by language
     Page<TvChannel> findByIsActiveTrueAndLanguageOrderBySortOrderAscNameAsc(
@@ -66,4 +64,6 @@ public interface ChannelRepository extends JpaRepository<TvChannel, Long> {
     // Get all languages
     @Query("SELECT DISTINCT c.language FROM TvChannel c WHERE c.isActive = true ORDER BY c.language.name")
     List<String> findAllLanguages();
+
+    Page<TvChannel> findByIsActiveTrueAndIsAvailableTrueOrderBySortOrderAscNameAsc(Pageable pageable);
 }

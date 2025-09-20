@@ -41,7 +41,7 @@ public class TvChannel  {
     @Column(name = "port")
     private int port;
 
-    @Column(nullable = false)
+    @Column( name = "stream_url", nullable = false)
     private String streamUrl; // future if udp stream brocken , internet stream url or other...
 
     @ManyToOne(cascade = CascadeType.PERSIST)
@@ -69,10 +69,10 @@ public class TvChannel  {
     @Column(name = "is_avialable",nullable = true)
     private Boolean isAvailable = true;
 
-    @Column(nullable = false)
+    @Column(name = "sort_order", nullable = false )
     private Integer sortOrder = 0;
 
-    @Column(name = "coment")
+    @Column(name = "comment")
     private String comment;
 
     @CreationTimestamp

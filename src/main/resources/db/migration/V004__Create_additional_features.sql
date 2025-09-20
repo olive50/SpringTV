@@ -1,364 +1,240 @@
 -- ===================================================================
--- TVBOOT IPTV Platform - Initial Data Setup
--- Migration: V003__Insert_initial_data.sql
--- Description: Insert initial required data (users, languages, categories)
+-- TVBOOT IPTV Platform - Additional Features (CORRECTED)
+-- Migration: V004__Create_additional_features.sql
+-- Description: Add additional features and improvements (NO DATA DUPLICATION)
 -- Author: TVBOOT Team
 -- Date: 2025-01-20
 -- ===================================================================
 
 -- ==========================================
--- INSERT DEFAULT USERS
+-- ADDITIONAL INDEXES FOR PERFORMANCE
 -- ==========================================
 
--- Insert default admin user (password: admin123 - BCrypt encoded)
-INSERT INTO users (username, email, password, first_name, last_name, role, is_active) VALUES
-                                                                                          ('admin', 'admin@tvboot.com', '$2a$12$LQv3c1yqBwEH8QA7K9lI/eOqjzTfT1Cc/Gml7mAyuL.FBIyF8xkfi', 'System', 'Administrator', 'ADMIN', TRUE),
-                                                                                          ('manager', 'manager@tvboot.com', '$2a$12$LQv3c1yqBwEH8QA7K9lI/eOqjzTfT1Cc/Gml7mAyuL.FBIyF8xkfi', 'Hotel', 'Manager', 'MANAGER', TRUE),
-                                                                                          ('receptionist', 'receptionist@tvboot.com', '$2a$12$LQv3c1yqBwEH8QA7K9lI/eOqjzTfT1Cc/Gml7mAyuL.FBIyF8xkfi', 'Front', 'Desk', 'RECEPTIONIST', TRUE),
-                                                                                          ('technician', 'technician@tvboot.com', '$2a$12$LQv3c1yqBwEH8QA7K9lI/eOqjzTfT1Cc/Gml7mAyuL.FBIyF8xkfi', 'IT', 'Technician', 'TECHNICIAN', TRUE);
+
 
 -- ==========================================
--- INSERT DEFAULT LANGUAGES
+-- ADDITIONAL TABLES FOR FUTURE FEATURES
 -- ==========================================
 
--- Insert default languages with comprehensive settings
-INSERT INTO languages (
-    name, native_name, iso_639_1, iso_639_2, locale_code, charset, is_rtl, is_active, is_default,
-    is_admin_enabled, is_guest_enabled, display_order, font_family, currency_code, currency_symbol,
-    date_format, time_format, number_format, decimal_separator, thousands_separator,
-    ui_translation_progress, channel_translation_progress, epg_translation_enabled, welcome_message,
-    created_by
-) VALUES
--- English (Default)
-(
-    'English', 'English', 'en', 'eng', 'en-US', 'UTF-8', FALSE, TRUE, TRUE,
-    TRUE, TRUE, 0, 'Arial, sans-serif', 'USD', '$',
-    'MM/dd/yyyy', 'hh:mm a', '#,##0.00', '.', ',',
-    100, 95, TRUE, 'Welcome to our hotel entertainment system!',
-    'system'
-),
+-- System Settings table
+CREATE TABLE IF NOT EXISTS system_settings (
+                                               id BIGINT NOT NULL AUTO_INCREMENT,
+                                               setting_key VARCHAR(100) NOT NULL UNIQUE,
+                                               setting_value TEXT,
+                                               setting_type ENUM('STRING', 'INTEGER', 'BOOLEAN', 'JSON') DEFAULT 'STRING',
+                                               description TEXT,
+                                               is_public BOOLEAN DEFAULT FALSE,
+                                               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                               updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                               PRIMARY KEY (id),
+                                               INDEX idx_settings_key (setting_key),
+                                               INDEX idx_settings_public (is_public)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='System configuration settings';
 
--- French
-(
-    'French', 'Français', 'fr', 'fra', 'fr-FR', 'UTF-8', FALSE, TRUE, FALSE,
-    TRUE, TRUE, 1, 'Arial, sans-serif', 'EUR', '€',
-    'dd/MM/yyyy', 'HH:mm', '# ##0,00', ',', ' ',
-    100, 88, TRUE, 'Bienvenue dans notre système de divertissement hôtelier!',
-    'system'
-),
+-- Audit Log table for detailed tracking
+CREATE TABLE IF NOT EXISTS audit_logs (
+                                          id BIGINT NOT NULL AUTO_INCREMENT,
+                                          user_id BIGINT,
+                                          action VARCHAR(100) NOT NULL,
+                                          resource_type VARCHAR(50) NOT NULL,
+                                          resource_id BIGINT,
+                                          old_values JSON,
+                                          new_values JSON,
+                                          ip_address VARCHAR(45),
+                                          user_agent TEXT,
+                                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                          PRIMARY KEY (id),
+                                          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
+                                          INDEX idx_audit_user (user_id),
+                                          INDEX idx_audit_action (action),
+                                          INDEX idx_audit_resource (resource_type, resource_id),
+                                          INDEX idx_audit_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Detailed audit trail for system actions';
 
--- Arabic
-(
-    'Arabic', 'العربية', 'ar', 'ara', 'ar-DZ', 'UTF-8', TRUE, TRUE, FALSE,
-    TRUE, FALSE, 2, 'Arial, Noto Sans Arabic', 'DZD', 'د.ج',
-    'yyyy/MM/dd', 'HH:mm', '#,##0.00', '.', ',',
-    70, 60, TRUE, 'مرحباً بكم في نظام الترفيه بالفندق!',
-    'system'
-),
+-- Hotel Information table
+CREATE TABLE IF NOT EXISTS hotel_info (
+                                          id BIGINT NOT NULL AUTO_INCREMENT,
+                                          name VARCHAR(200) NOT NULL,
+                                          address TEXT,
+                                          phone VARCHAR(30),
+                                          email VARCHAR(100),
+                                          website VARCHAR(200),
+                                          logo_url VARCHAR(500),
+                                          timezone VARCHAR(50) DEFAULT 'UTC',
+                                          default_language_id BIGINT,
+                                          check_in_time TIME DEFAULT '15:00:00',
+                                          check_out_time TIME DEFAULT '11:00:00',
+                                          currency_code CHAR(3) DEFAULT 'USD',
+                                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                          PRIMARY KEY (id),
+                                          FOREIGN KEY (default_language_id) REFERENCES languages(id) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Hotel basic information and settings';
 
--- Spanish
-(
-    'Spanish', 'Español', 'es', 'spa', 'es-ES', 'UTF-8', FALSE, TRUE, FALSE,
-    TRUE, FALSE, 3, 'Arial, sans-serif', 'EUR', '€',
-    'dd/MM/yyyy', 'HH:mm', '#.##0,00', ',', '.',
-    50, 40, FALSE, '¡Bienvenido a nuestro sistema de entretenimiento hotelero!',
-    'system'
-),
-
--- German
-(
-    'German', 'Deutsch', 'de', 'deu', 'de-DE', 'UTF-8', FALSE, TRUE, FALSE,
-    TRUE, FALSE, 4, 'Arial, sans-serif', 'EUR', '€',
-    'dd.MM.yyyy', 'HH:mm', '#.##0,00', ',', '.',
-    60, 45, FALSE, 'Willkommen zu unserem Hotel-Entertainment-System!',
-    'system'
-),
-
--- Italian
-(
-    'Italian', 'Italiano', 'it', 'ita', 'it-IT', 'UTF-8', FALSE, TRUE, FALSE,
-    TRUE, FALSE, 5, 'Arial, sans-serif', 'EUR', '€',
-    'dd/MM/yyyy', 'HH:mm', '#.##0,00', ',', '.',
-    40, 30, FALSE, 'Benvenuti nel nostro sistema di intrattenimento alberghiero!',
-    'system'
-);
-
--- Insert supported platforms for languages
-INSERT INTO language_supported_platforms (language_id, platform) VALUES
--- English - all platforms
-(1, 'TIZEN'), (1, 'WEBOS'), (1, 'ANDROID'), (1, 'WEB'), (1, 'IOS'),
--- French - all platforms
-(2, 'TIZEN'), (2, 'WEBOS'), (2, 'ANDROID'), (2, 'WEB'), (2, 'IOS'),
--- Arabic - Tizen and WebOS (better RTL support)
-(3, 'TIZEN'), (3, 'WEBOS'), (3, 'WEB'),
--- Spanish - all platforms
-(4, 'TIZEN'), (4, 'WEBOS'), (4, 'ANDROID'), (4, 'WEB'), (4, 'IOS'),
--- German - all platforms
-(5, 'TIZEN'), (5, 'WEBOS'), (5, 'ANDROID'), (5, 'WEB'), (5, 'IOS'),
--- Italian - all platforms
-(6, 'TIZEN'), (6, 'WEBOS'), (6, 'ANDROID'), (6, 'WEB'), (6, 'IOS');
+-- Notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+                                             id BIGINT NOT NULL AUTO_INCREMENT,
+                                             user_id BIGINT,
+                                             title VARCHAR(200) NOT NULL,
+                                             message TEXT NOT NULL,
+                                             type ENUM('INFO', 'WARNING', 'ERROR', 'SUCCESS') DEFAULT 'INFO',
+                                             is_read BOOLEAN DEFAULT FALSE,
+                                             is_system BOOLEAN DEFAULT FALSE,
+                                             expires_at DATETIME,
+                                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                             PRIMARY KEY (id),
+                                             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+                                             INDEX idx_notifications_user (user_id),
+                                             INDEX idx_notifications_unread (user_id, is_read),
+                                             INDEX idx_notifications_type (type),
+                                             INDEX idx_notifications_expires (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='System and user notifications';
 
 -- ==========================================
--- INSERT DEFAULT TV CHANNEL CATEGORIES
+-- INSERT INITIAL SYSTEM SETTINGS
 -- ==========================================
 
-INSERT INTO tv_channel_categories (name, description, icon_url) VALUES
-                                                                    ('News', 'News and current affairs channels', 'fas fa-newspaper'),
-                                                                    ('Sports', 'Sports and athletics channels', 'fas fa-football-ball'),
-                                                                    ('Entertainment', 'Movies and entertainment channels', 'fas fa-film'),
-                                                                    ('Kids', 'Children and family channels', 'fas fa-child'),
-                                                                    ('Documentary', 'Documentary and educational channels', 'fas fa-graduation-cap'),
-                                                                    ('Music', 'Music and concerts channels', 'fas fa-music'),
-                                                                    ('Lifestyle', 'Lifestyle and cooking channels', 'fas fa-utensils'),
-                                                                    ('Religious', 'Religious and spiritual content', 'fas fa-pray'),
-                                                                    ('International', 'International and foreign language channels', 'fas fa-globe'),
-                                                                    ('Premium', 'Premium subscription channels', 'fas fa-crown');
+INSERT IGNORE INTO system_settings (setting_key, setting_value, setting_type, description, is_public) VALUES
+                                                                                                          ('app.name', 'TVBOOT IPTV Platform', 'STRING', 'Application name', TRUE),
+                                                                                                          ('app.version', '1.2.0', 'STRING', 'Application version', TRUE),
+                                                                                                          ('app.environment', 'development', 'STRING', 'Current environment', FALSE),
+                                                                                                          ('security.session_timeout', '3600', 'INTEGER', 'Session timeout in seconds', FALSE),
+                                                                                                          ('tv.max_channels_per_package', '500', 'INTEGER', 'Maximum channels per package', FALSE),
+                                                                                                          ('terminal.heartbeat_interval', '60', 'INTEGER', 'Terminal heartbeat interval in seconds', FALSE),
+                                                                                                          ('epg.retention_days', '7', 'INTEGER', 'EPG data retention in days', FALSE),
+                                                                                                          ('ui.default_page_size', '20', 'INTEGER', 'Default pagination size', FALSE),
+                                                                                                          ('maintenance.auto_cleanup', 'true', 'BOOLEAN', 'Enable automatic data cleanup', FALSE),
+                                                                                                          ('features.epg_enabled', 'true', 'BOOLEAN', 'Enable EPG functionality', TRUE);
 
 -- ==========================================
--- INSERT SAMPLE CHANNEL PACKAGES
+-- INSERT DEFAULT HOTEL INFO
 -- ==========================================
 
-INSERT INTO channel_packages (name, description, price, is_premium, is_active) VALUES
-                                                                                   ('Basic Package', 'Essential channels for all guests', 0.00, FALSE, TRUE),
-                                                                                   ('Premium Package', 'Extended channel selection with premium content', 15.99, TRUE, TRUE),
-                                                                                   ('Sports Package', 'Comprehensive sports coverage', 12.99, TRUE, TRUE),
-                                                                                   ('International Package', 'Channels from around the world', 9.99, TRUE, TRUE),
-                                                                                   ('Family Package', 'Family-friendly entertainment and kids channels', 8.99, FALSE, TRUE);
+INSERT IGNORE INTO hotel_info (
+    name, address, phone, email, timezone,
+    default_language_id, check_in_time, check_out_time, currency_code
+) VALUES (
+             'Demo Hotel TVBOOT',
+             '123 Hotel Street, City, Country',
+             '+1-555-HOTEL',
+             'info@demo-hotel.com',
+             'UTC',
+             (SELECT id FROM languages WHERE iso_639_1 = 'en' LIMIT 1),
+             '15:00:00',
+             '11:00:00',
+             'USD'
+         );
 
 -- ==========================================
--- INSERT SAMPLE TV CHANNELS
+-- ADD USEFUL VIEWS
 -- ==========================================
 
--- Get language IDs for references
-SET @english_id = (SELECT id FROM languages WHERE iso_639_1 = 'en');
-SET @french_id = (SELECT id FROM languages WHERE iso_639_1 = 'fr');
-SET @arabic_id = (SELECT id FROM languages WHERE iso_639_1 = 'ar');
+-- Vue pour les statistiques des chaînes
+CREATE OR REPLACE VIEW tv_channel_stats AS
+SELECT
+    c.name as category_name,
+    l.name as language_name,
+    COUNT(*) as channel_count,
+    SUM(CASE WHEN tc.is_active = TRUE THEN 1 ELSE 0 END) as active_channels,
+    SUM(CASE WHEN tc.is_hd = TRUE THEN 1 ELSE 0 END) as hd_channels
+FROM tv_channels tc
+         LEFT JOIN tv_channel_categories c ON tc.category_id = c.id
+         LEFT JOIN languages l ON tc.language_id = l.id
+GROUP BY c.id, l.id;
 
--- Get category IDs for references
-SET @news_cat = (SELECT id FROM tv_channel_categories WHERE name = 'News');
-SET @sports_cat = (SELECT id FROM tv_channel_categories WHERE name = 'Sports');
-SET @entertainment_cat = (SELECT id FROM tv_channel_categories WHERE name = 'Entertainment');
-SET @kids_cat = (SELECT id FROM tv_channel_categories WHERE name = 'Kids');
-SET @documentary_cat = (SELECT id FROM tv_channel_categories WHERE name = 'Documentary');
-SET @music_cat = (SELECT id FROM tv_channel_categories WHERE name = 'Music');
+-- Vue pour les statistiques des chambres
+CREATE OR REPLACE VIEW room_occupancy_stats AS
+SELECT
+    room_type,
+    COUNT(*) as total_rooms,
+    SUM(CASE WHEN status = 'AVAILABLE' THEN 1 ELSE 0 END) as available_rooms,
+    SUM(CASE WHEN status = 'OCCUPIED' THEN 1 ELSE 0 END) as occupied_rooms,
+    SUM(CASE WHEN status = 'MAINTENANCE' THEN 1 ELSE 0 END) as maintenance_rooms,
+    SUM(CASE WHEN status = 'CLEANING' THEN 1 ELSE 0 END) as cleaning_rooms,
+    ROUND(AVG(price_per_night), 2) as avg_price
+FROM rooms
+GROUP BY room_type;
 
--- Insert sample TV channels
-INSERT INTO tv_channels (
-    channel_number, name, description, ip, port, stream_url, logo_url,
-    category_id, language_id, is_active, is_hd, is_avialable, sort_order
-) VALUES
--- News Channels
-(101, 'CNN International', 'International news and current affairs', '192.168.1.100', 8001, 'udp://@239.1.1.101:1234', '/logos/cnn.png', @news_cat, @english_id, TRUE, TRUE, TRUE, 1),
-(102, 'BBC World News', 'British Broadcasting Corporation World Service', '192.168.1.101', 8002, 'udp://@239.1.1.102:1234', '/logos/bbc.png', @news_cat, @english_id, TRUE, TRUE, TRUE, 2),
-(103, 'France 24', 'French international news channel', '192.168.1.102', 8003, 'udp://@239.1.1.103:1234', '/logos/france24.png', @news_cat, @french_id, TRUE, TRUE, TRUE, 3),
-(104, 'Al Jazeera English', 'Middle Eastern perspective on global news', '192.168.1.103', 8004, 'udp://@239.1.1.104:1234', '/logos/aljazeera.png', @news_cat, @english_id, TRUE, TRUE, TRUE, 4),
-(105, 'Echorouk News', 'Algerian news channel', '192.168.1.104', 8005, 'udp://@239.1.1.105:1234', '/logos/echorouk.png', @news_cat, @arabic_id, TRUE, FALSE, TRUE, 5),
-
--- Sports Channels
-(201, 'ESPN', 'Sports entertainment and programming network', '192.168.1.110', 8011, 'udp://@239.1.2.101:1234', '/logos/espn.png', @sports_cat, @english_id, TRUE, TRUE, TRUE, 10),
-(202, 'Eurosport 1', 'European sports channel', '192.168.1.111', 8012, 'udp://@239.1.2.102:1234', '/logos/eurosport.png', @sports_cat, @english_id, TRUE, TRUE, TRUE, 11),
-(203, 'beIN Sports 1', 'Premium sports channel', '192.168.1.112', 8013, 'udp://@239.1.2.103:1234', '/logos/bein1.png', @sports_cat, @english_id, TRUE, TRUE, TRUE, 12),
-(204, 'Sky Sports', 'UK sports broadcasting', '192.168.1.113', 8014, 'udp://@239.1.2.104:1234', '/logos/skysports.png', @sports_cat, @english_id, TRUE, TRUE, TRUE, 13),
-
--- Entertainment Channels
-(301, 'HBO', 'Premium entertainment channel', '192.168.1.120', 8021, 'udp://@239.1.3.101:1234', '/logos/hbo.png', @entertainment_cat, @english_id, TRUE, TRUE, TRUE, 20),
-(302, 'Discovery Channel', 'Documentary and reality programming', '192.168.1.121', 8022, 'udp://@239.1.3.102:1234', '/logos/discovery.png', @documentary_cat, @english_id, TRUE, TRUE, TRUE, 21),
-(303, 'National Geographic', 'Science and nature documentaries', '192.168.1.122', 8023, 'udp://@239.1.3.103:1234', '/logos/natgeo.png', @documentary_cat, @english_id, TRUE, TRUE, TRUE, 22),
-(304, 'MTV', 'Music television', '192.168.1.123', 8024, 'udp://@239.1.3.104:1234', '/logos/mtv.png', @music_cat, @english_id, TRUE, FALSE, TRUE, 23),
-
--- Kids Channels
-(401, 'Cartoon Network', 'Animated series and movies for children', '192.168.1.130', 8031, 'udp://@239.1.4.101:1234', '/logos/cartoon.png', @kids_cat, @english_id, TRUE, FALSE, TRUE, 30),
-(402, 'Disney Channel', 'Family entertainment from Disney', '192.168.1.131', 8032, 'udp://@239.1.4.102:1234', '/logos/disney.png', @kids_cat, @english_id, TRUE, TRUE, TRUE, 31),
-(403, 'Nickelodeon', 'Kids entertainment and educational content', '192.168.1.132', 8033, 'udp://@239.1.4.103:1234', '/logos/nick.png', @kids_cat, @english_id, TRUE, FALSE, TRUE, 32),
-
--- French Channels
-(501, 'TF1', 'French general entertainment', '192.168.1.140', 8041, 'udp://@239.1.5.101:1234', '/logos/tf1.png', @entertainment_cat, @french_id, TRUE, TRUE, TRUE, 40),
-(502, 'France 2', 'French public television', '192.168.1.141', 8042, 'udp://@239.1.5.102:1234', '/logos/france2.png', @entertainment_cat, @french_id, TRUE, TRUE, TRUE, 41),
-(503, 'Canal+', 'French premium channel', '192.168.1.142', 8043, 'udp://@239.1.5.103:1234', '/logos/canal.png', @entertainment_cat, @french_id, TRUE, TRUE, TRUE, 42);
+-- Vue pour le statut des terminaux
+CREATE OR REPLACE VIEW terminal_status_summary AS
+SELECT
+    device_type,
+    status,
+    COUNT(*) as terminal_count,
+    SUM(CASE WHEN is_online = TRUE THEN 1 ELSE 0 END) as online_count
+FROM terminals
+GROUP BY device_type, status;
 
 -- ==========================================
--- INSERT SAMPLE ROOMS
+-- ADD TRIGGERS FOR AUDIT
 -- ==========================================
 
-INSERT INTO rooms (room_number, room_type, floor_number, building, capacity, price_per_night, status, description) VALUES
--- Standard Rooms (Floor 1)
-('101', 'STANDARD', 1, 'Main Building', 2, 89.99, 'AVAILABLE', 'Standard room with city view and basic amenities'),
-('102', 'STANDARD', 1, 'Main Building', 2, 89.99, 'OCCUPIED', 'Standard room with garden view'),
-('103', 'STANDARD', 1, 'Main Building', 2, 89.99, 'AVAILABLE', 'Standard room with courtyard view'),
-('104', 'STANDARD', 1, 'Main Building', 2, 89.99, 'CLEANING', 'Standard room with pool view'),
-('105', 'STANDARD', 1, 'Main Building', 2, 89.99, 'AVAILABLE', 'Standard room with city view'),
+-- Trigger pour auditer les modifications d'utilisateurs
+DELIMITER $$
 
--- Deluxe Rooms (Floor 2)
-('201', 'DELUXE', 2, 'Main Building', 3, 129.99, 'AVAILABLE', 'Deluxe room with balcony and enhanced amenities'),
-('202', 'DELUXE', 2, 'Main Building', 3, 129.99, 'OCCUPIED', 'Deluxe room with sea view'),
-('203', 'DELUXE', 2, 'Main Building', 3, 129.99, 'AVAILABLE', 'Deluxe room with mountain view'),
-('204', 'DELUXE', 2, 'Main Building', 3, 129.99, 'AVAILABLE', 'Deluxe room with garden balcony'),
-('205', 'DELUXE', 2, 'Main Building', 3, 129.99, 'MAINTENANCE', 'Deluxe room with panoramic view'),
+CREATE TRIGGER IF NOT EXISTS users_audit_update
+    AFTER UPDATE ON users
+    FOR EACH ROW
+BEGIN
+    INSERT INTO audit_logs (user_id, action, resource_type, resource_id, old_values, new_values, created_at)
+    VALUES (
+               NEW.id,
+               'UPDATE',
+               'USER',
+               NEW.id,
+               JSON_OBJECT(
+                       'username', OLD.username,
+                       'email', OLD.email,
+                       'role', OLD.role,
+                       'is_active', OLD.is_active
+               ),
+               JSON_OBJECT(
+                       'username', NEW.username,
+                       'email', NEW.email,
+                       'role', NEW.role,
+                       'is_active', NEW.is_active
+               ),
+               NOW()
+           );
+END$$
 
--- Suites (Floor 3)
-('301', 'SUITE', 3, 'Main Building', 4, 199.99, 'AVAILABLE', 'Executive suite with living room and work area'),
-('302', 'SUITE', 3, 'Main Building', 4, 199.99, 'OCCUPIED', 'Luxury suite with separate dining area'),
-('303', 'JUNIOR_SUITE', 3, 'Main Building', 3, 169.99, 'AVAILABLE', 'Junior suite with sitting area'),
-('304', 'PRESIDENTIAL_SUITE', 3, 'Main Building', 6, 399.99, 'AVAILABLE', 'Presidential suite with multiple rooms and premium amenities'),
+-- Trigger pour auditer les modifications de chaînes TV
+CREATE TRIGGER IF NOT EXISTS tv_channels_audit_update
+    AFTER UPDATE ON tv_channels
+    FOR EACH ROW
+BEGIN
+    INSERT INTO audit_logs (action, resource_type, resource_id, old_values, new_values, created_at)
+    VALUES (
+               'UPDATE',
+               'TV_CHANNEL',
+               NEW.id,
+               JSON_OBJECT(
+                       'name', OLD.name,
+                       'channel_number', OLD.channel_number,
+                       'is_active', OLD.is_active
+               ),
+               JSON_OBJECT(
+                       'name', NEW.name,
+                       'channel_number', NEW.channel_number,
+                       'is_active', NEW.is_active
+               ),
+               NOW()
+           );
+END$$
 
--- Wing B Rooms
-('B101', 'STANDARD', 1, 'Wing B', 2, 79.99, 'AVAILABLE', 'Standard room in quiet wing'),
-('B102', 'STANDARD', 1, 'Wing B', 2, 79.99, 'AVAILABLE', 'Standard room with garden access'),
-('B201', 'DELUXE', 2, 'Wing B', 3, 119.99, 'AVAILABLE', 'Deluxe room with terrace'),
-('B202', 'FAMILY_ROOM', 2, 'Wing B', 5, 149.99, 'AVAILABLE', 'Family room with connecting door option');
-
--- Insert room amenities
-INSERT INTO room_amenities (room_id, amenity) VALUES
--- Standard room amenities
-(1, 'WiFi'), (1, 'Air Conditioning'), (1, 'TV'), (1, 'Mini Bar'), (1, 'Safe'),
-(2, 'WiFi'), (2, 'Air Conditioning'), (2, 'TV'), (2, 'Mini Bar'), (2, 'Safe'),
-(3, 'WiFi'), (3, 'Air Conditioning'), (3, 'TV'), (3, 'Mini Bar'), (3, 'Safe'),
-(4, 'WiFi'), (4, 'Air Conditioning'), (4, 'TV'), (4, 'Mini Bar'), (4, 'Safe'),
-(5, 'WiFi'), (5, 'Air Conditioning'), (5, 'TV'), (5, 'Mini Bar'), (5, 'Safe'),
-
--- Deluxe room amenities (enhanced)
-(6, 'WiFi'), (6, 'Air Conditioning'), (6, 'Smart TV'), (6, 'Mini Bar'), (6, 'Safe'), (6, 'Balcony'), (6, 'Coffee Machine'),
-(7, 'WiFi'), (7, 'Air Conditioning'), (7, 'Smart TV'), (7, 'Mini Bar'), (7, 'Safe'), (7, 'Balcony'), (7, 'Coffee Machine'),
-(8, 'WiFi'), (8, 'Air Conditioning'), (8, 'Smart TV'), (8, 'Mini Bar'), (8, 'Safe'), (8, 'Balcony'), (8, 'Coffee Machine'),
-(9, 'WiFi'), (9, 'Air Conditioning'), (9, 'Smart TV'), (9, 'Mini Bar'), (9, 'Safe'), (9, 'Balcony'), (9, 'Coffee Machine'),
-(10, 'WiFi'), (10, 'Air Conditioning'), (10, 'Smart TV'), (10, 'Mini Bar'), (10, 'Safe'), (10, 'Balcony'), (10, 'Coffee Machine'),
-
--- Suite amenities (premium)
-(11, 'WiFi'), (11, 'Air Conditioning'), (11, 'Smart TV'), (11, 'Mini Bar'), (11, 'Safe'), (11, 'Living Room'), (11, 'Coffee Machine'), (11, 'Kitchenette'),
-(12, 'WiFi'), (12, 'Air Conditioning'), (12, 'Smart TV'), (12, 'Mini Bar'), (12, 'Safe'), (12, 'Living Room'), (12, 'Coffee Machine'), (12, 'Dining Area'),
-(13, 'WiFi'), (13, 'Air Conditioning'), (13, 'Smart TV'), (13, 'Mini Bar'), (13, 'Safe'), (13, 'Sitting Area'), (13, 'Coffee Machine'),
-(14, 'WiFi'), (14, 'Air Conditioning'), (14, 'Smart TV'), (14, 'Mini Bar'), (14, 'Safe'), (14, 'Living Room'), (14, 'Dining Area'), (14, 'Kitchenette'), (14, 'Jacuzzi'), (14, 'Butler Service');
-
--- ==========================================
--- INSERT SAMPLE GUESTS
--- ==========================================
-
-INSERT INTO guests (guest_id, first_name, last_name, email, phone, nationality, vip_status, loyalty_level, preferred_language, current_room_id) VALUES
-                                                                                                                                                    ('G001', 'John', 'Smith', 'john.smith@email.com', '+1-555-0123', 'American', FALSE, 'SILVER', 'en', 2),
-                                                                                                                                                    ('G002', 'Marie', 'Dubois', 'marie.dubois@email.fr', '+33-1-23456789', 'French', TRUE, 'GOLD', 'fr', 7),
-                                                                                                                                                    ('G003', 'Ahmed', 'Hassan', 'ahmed.hassan@email.com', '+20-123-456789', 'Egyptian', FALSE, 'BRONZE', 'ar', 12),
-                                                                                                                                                    ('G004', 'Anna', 'Schmidt', 'anna.schmidt@email.de', '+49-30-12345678', 'German', FALSE, 'SILVER', 'de', NULL),
-                                                                                                                                                    ('G005', 'Carlos', 'Rodriguez', 'carlos.rodriguez@email.es', '+34-91-1234567', 'Spanish', TRUE, 'PLATINUM', 'es', NULL);
+DELIMITER ;
 
 -- ==========================================
--- INSERT SAMPLE RESERVATIONS
+-- FINAL VERIFICATION
 -- ==========================================
 
-INSERT INTO reservations (
-    reservation_number, guest_id, room_id, check_in_date, check_out_date,
-    actual_check_in, number_of_guests, total_amount, status, booking_source
-) VALUES
-      ('RES001', 1, 2, '2025-01-20 15:00:00', '2025-01-25 11:00:00', '2025-01-20 15:30:00', 2, 449.95, 'CHECKED_IN', 'Website'),
-      ('RES002', 2, 7, '2025-01-19 14:00:00', '2025-01-24 12:00:00', '2025-01-19 14:15:00', 2, 649.95, 'CHECKED_IN', 'Phone'),
-      ('RES003', 3, 12, '2025-01-18 16:00:00', '2025-01-22 10:00:00', '2025-01-18 16:20:00', 3, 799.96, 'CHECKED_IN', 'Travel Agent'),
-      ('RES004', 4, 8, '2025-01-22 15:00:00', '2025-01-26 11:00:00', NULL, 2, 519.96, 'CONFIRMED', 'Website'),
-      ('RES005', 5, 14, '2025-01-25 14:00:00', '2025-01-30 12:00:00', NULL, 4, 1999.95, 'CONFIRMED', 'Concierge');
+SELECT 'V004 Migration completed successfully - Additional features added' as status;
 
--- ==========================================
--- INSERT SAMPLE TERMINALS
--- ==========================================
-
-INSERT INTO terminals (
-    terminal_id, device_type, brand, model, mac_address, ip_address, status,
-    location, room_id, firmware_version, serial_number, is_online
-) VALUES
-      ('TV101', 'SMART_TV', 'Samsung', 'QN55Q80A', '00:1B:44:11:3A:B7', '192.168.2.101', 'ACTIVE', 'Room 101', 1, 'Tizen 6.5', 'SN001TV101', TRUE),
-      ('TV102', 'SMART_TV', 'Samsung', 'QN55Q80A', '00:1B:44:11:3A:B8', '192.168.2.102', 'ACTIVE', 'Room 102', 2, 'Tizen 6.5', 'SN002TV102', TRUE),
-      ('TV201', 'SMART_TV', 'LG', 'OLED55C1PUB', '00:1B:44:11:3A:C1', '192.168.2.201', 'ACTIVE', 'Room 201', 6, 'WebOS 6.0', 'SN003TV201', TRUE),
-      ('TV202', 'SMART_TV', 'LG', 'OLED55C1PUB', '00:1B:44:11:3A:C2', '192.168.2.202', 'ACTIVE', 'Room 202', 7, 'WebOS 6.0', 'SN004TV202', TRUE),
-      ('TV301', 'SMART_TV', 'Samsung', 'QN65Q90A', '00:1B:44:11:3A:D1', '192.168.2.301', 'ACTIVE', 'Suite 301', 11, 'Tizen 6.5', 'SN005TV301', TRUE),
-      ('STB001', 'SET_TOP_BOX', 'Roku', 'Ultra 4K', '00:1B:44:11:3A:E1', '192.168.2.151', 'ACTIVE', 'Lobby', NULL, 'Roku OS 11', 'SN006STB001', TRUE),
-      ('STB002', 'ANDROID_BOX', 'Nvidia', 'Shield TV Pro', '00:1B:44:11:3A:F1', '192.168.2.152', 'MAINTENANCE', 'Conference Room A', NULL, 'Android TV 11', 'SN007STB002', FALSE);
-
--- ==========================================
--- ASSIGN CHANNEL PACKAGES TO ROOMS
--- ==========================================
-
--- Assign basic package to standard rooms
-UPDATE rooms SET channel_package_id = 1 WHERE room_type IN ('STANDARD');
-
--- Assign premium package to deluxe rooms and suites
-UPDATE rooms SET channel_package_id = 2 WHERE room_type IN ('DELUXE', 'SUITE', 'JUNIOR_SUITE', 'PRESIDENTIAL_SUITE', 'FAMILY_ROOM');
-
--- ==========================================
--- INSERT PACKAGE CHANNEL ASSIGNMENTS
--- ==========================================
-
--- Basic Package (ID: 1) - Essential channels
-INSERT INTO package_channels (package_id, channel_id, position, is_enabled) VALUES
-                                                                                (1, 1, 1, TRUE),  -- CNN International
-                                                                                (1, 2, 2, TRUE),  -- BBC World News
-                                                                                (1, 7, 3, TRUE),  -- Discovery Channel
-                                                                                (1, 9, 4, TRUE),  -- Cartoon Network
-                                                                                (1, 10, 5, TRUE), -- Disney Channel
-                                                                                (1, 12, 6, TRUE); -- TF1
-
--- Premium Package (ID: 2) - All channels
-INSERT INTO package_channels (package_id, channel_id, position, is_enabled)
-SELECT 2, id, sort_order, TRUE FROM tv_channels WHERE is_active = TRUE;
-
--- Sports Package (ID: 3) - Sports channels only
-INSERT INTO package_channels (package_id, channel_id, position, is_enabled) VALUES
-                                                                                (3, 4, 1, TRUE),  -- ESPN
-                                                                                (3, 5, 2, TRUE),  -- Eurosport 1
-                                                                                (3, 6, 3, TRUE),  -- beIN Sports 1
-                                                                                (3, 7, 4, TRUE);  -- Sky Sports
-
--- ==========================================
--- INSERT SAMPLE EPG ENTRIES
--- ==========================================
-
--- Sample EPG entries for today and tomorrow
-INSERT INTO epg_entries (channel_id, title, description, start_time, end_time, genre) VALUES
--- CNN International (Channel 1)
-(1, 'World News Now', 'Breaking news and analysis from around the world', '2025-01-20 06:00:00', '2025-01-20 07:00:00', 'News'),
-(1, 'CNN Business', 'Global business news and market analysis', '2025-01-20 07:00:00', '2025-01-20 08:00:00', 'Business'),
-(1, 'International Desk', 'In-depth coverage of international affairs', '2025-01-20 08:00:00', '2025-01-20 09:00:00', 'News'),
-
--- ESPN (Channel 4)
-(4, 'SportsCenter', 'Latest sports news and highlights', '2025-01-20 06:00:00', '2025-01-20 07:00:00', 'Sports'),
-(4, 'NFL Analysis', 'Expert analysis of recent NFL games', '2025-01-20 07:00:00', '2025-01-20 08:00:00', 'Sports'),
-(4, 'College Basketball', 'Live college basketball coverage', '2025-01-20 08:00:00', '2025-01-20 11:00:00', 'Sports'),
-
--- Disney Channel (Channel 10)
-(10, 'Mickey Mouse Clubhouse', 'Educational entertainment for children', '2025-01-20 06:00:00', '2025-01-20 06:30:00', 'Kids'),
-(10, 'Frozen II', 'Animated musical fantasy film', '2025-01-20 06:30:00', '2025-01-20 08:15:00', 'Family'),
-(10, 'The Lion King', 'Classic animated adventure', '2025-01-20 08:15:00', '2025-01-20 10:00:00', 'Family');
-
--- ==========================================
--- CREATE INDEXES FOR BETTER PERFORMANCE
--- ==========================================
-
--- Additional performance indexes based on common query patterns
-CREATE INDEX idx_users_role_active ON users(role, is_active);
-CREATE INDEX idx_languages_guest_display ON languages(is_guest_enabled, display_order);
-CREATE INDEX idx_rooms_status_type ON rooms(status, room_type);
-CREATE INDEX idx_channels_active_sort ON tv_channels(is_active, sort_order);
-CREATE INDEX idx_terminals_room_status ON terminals(room_id, status);
-CREATE INDEX idx_epg_channel_time ON epg_entries(channel_id, start_time, end_time);
-
--- ==========================================
--- FINAL VERIFICATION QUERIES
--- ==========================================
-
--- Verify data insertion
-SELECT 'Users' as table_name, COUNT(*) as count FROM users
-UNION ALL
-SELECT 'Languages', COUNT(*) FROM languages
-UNION ALL
-SELECT 'Categories', COUNT(*) FROM tv_channel_categories
-UNION ALL
-SELECT 'Channels', COUNT(*) FROM tv_channels
-UNION ALL
-SELECT 'Rooms', COUNT(*) FROM rooms
-UNION ALL
-SELECT 'Guests', COUNT(*) FROM guests
-UNION ALL
-SELECT 'Terminals', COUNT(*) FROM terminals
-UNION ALL
-SELECT 'Packages', COUNT(*) FROM channel_packages
-UNION ALL
-SELECT 'EPG Entries', COUNT(*) FROM epg_entries;
-
--- Commit the transaction
-COMMIT;
+-- Show summary of new tables
+SELECT
+    TABLE_NAME,
+    TABLE_COMMENT
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_SCHEMA = DATABASE()
+  AND TABLE_NAME IN ('system_settings', 'audit_logs', 'hotel_info', 'notifications')
+ORDER BY TABLE_NAME;

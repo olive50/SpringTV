@@ -8,9 +8,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
-
 @Repository
 public interface TvChannelRepository extends JpaRepository<TvChannel, Long> {
+
     Optional<TvChannel> findByChannelNumber(int channelNumber);
     List<TvChannel> findByCategoryId(Long categoryId);
     List<TvChannel> findByLanguageId(Long languageId);
@@ -22,16 +22,15 @@ public interface TvChannelRepository extends JpaRepository<TvChannel, Long> {
     @Query("SELECT c FROM TvChannel c WHERE c.ip = :ip AND c.port = :port")
     Optional<TvChannel> findByIpAndPort(@Param("ip") String ip, @Param("port") int port);
 
-    Page<TvChannel> findByCategoryAndActive(String category, Boolean active, Pageable pageable);
+    // ✅ Fixed
+    Page<TvChannel> findByCategoryIdAndIsActive(Long categoryId, Boolean isActive, Pageable pageable);
+    Page<TvChannel> findByCategoryId(Long categoryId, Pageable pageable);
 
-    Page<TvChannel> findByCategory(String category, Pageable pageable);
+    Page<TvChannel> findByIsActive(Boolean isActive, Pageable pageable);
+    long countByIsActive(Boolean isActive);
+    long countByIsActive(boolean isActive);
 
-    Page<TvChannel> findByActive(Boolean active, Pageable pageable);
-
- // for stats
     // Count queries
-    long countByActive(boolean active);
-
     @Query("SELECT COUNT(c) FROM TvChannel c WHERE c.category.id = :categoryId")
     long countByCategoryId(@Param("categoryId") Long categoryId);
 

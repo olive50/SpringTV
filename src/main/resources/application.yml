@@ -9,6 +9,7 @@ spring:
   profiles:
     active: dev
 
+
   # ==========================================
   # DATABASE CONFIGURATION
   # ==========================================
@@ -39,6 +40,7 @@ spring:
         format_sql: true
         use_sql_comments: true
 
+
   # ==========================================
   # FLYWAY CONFIGURATION
   # ==========================================
@@ -48,6 +50,7 @@ spring:
     baseline-on-migrate: true
     validate-on-migrate: true
     clean-disabled: false
+
 
   # ==========================================
   # MULTIPART (FILE UPLOAD)

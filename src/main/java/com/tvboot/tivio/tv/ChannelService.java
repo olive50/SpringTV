@@ -13,7 +13,7 @@ public interface ChannelService {
 
     Page<TvChannel> getGuestChannels(int page, int size);
 
-    Page<TvChannel> getPremiumChannels(int page, int size);
+
 
     Page<TvChannel> getChannelsByLanguage(String language, int page, int size);
 

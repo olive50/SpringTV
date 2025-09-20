@@ -121,38 +121,6 @@ public class ChannelController {
         }
     }
 
-    /**
-     * Get premium channels
-     */
-    @GetMapping("/premium")
-    public ResponseEntity<TvBootHttpResponse> getPremiumChannels(
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-
-        log.info("Getting premium channels - page: {}, size: {}", page, size);
-
-        try {
-            Page<TvChannel> channelPage = channelService.getPremiumChannels(page, size);
-            // Note: You might want to add countPremiumChannels() method to service
-            long total = channelPage.getTotalElements();
-
-            TvBootHttpResponse response = TvBootHttpResponse.success()
-                    .message("Premium channels retrieved successfully")
-                    .build()
-                    .addChannels(channelPage.getContent())
-                    .addPagination(page, size, total)
-                    .addData("channelType", "premium");
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            log.error("Error retrieving premium channels", e);
-            return TvBootHttpResponse.internalServerErrorResponse(
-                    "Error retrieving premium channels",
-                    e.getMessage()
-            );
-        }
-    }
 
     /**
      * Get channels by language

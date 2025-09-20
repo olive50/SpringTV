@@ -647,8 +647,8 @@ public class TvChannelService {
     public TvChannelStatsDTO getChannelStatistics() {
         // Get basic counts
         long totalChannels = tvChannelRepository.count();
-        long activeChannels = tvChannelRepository.countByActive(true);
-        long inactiveChannels = tvChannelRepository.countByActive(false);
+        long activeChannels = tvChannelRepository.countByIsActive(true);
+        long inactiveChannels = tvChannelRepository.countByIsActive(false);
 
         // Get category statistics
         Map<String, Long> categoryStats = new HashMap<>();
