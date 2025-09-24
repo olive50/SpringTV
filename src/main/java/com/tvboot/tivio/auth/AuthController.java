@@ -168,6 +168,7 @@ public class AuthController {
 
         } catch (BadCredentialsException e) {
             log.warn("Échec d'authentification pour {}: identifiants invalides", loginRequest.getUsername());
+            // Message spécifique pour les identifiants invalides
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new MessageResponse("Invalid username or password"));
 
@@ -178,6 +179,7 @@ public class AuthController {
 
         } catch (Exception e) {
             log.error("Erreur d'authentification pour {}: {}", loginRequest.getUsername(), e.getMessage(), e);
+            // Le message générique reste ici pour les autres types d'erreurs
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new MessageResponse("Authentication failed. Please try again later."));
         }

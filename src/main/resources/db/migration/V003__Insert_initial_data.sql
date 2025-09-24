@@ -12,11 +12,11 @@
 
 -- Insert default admin user (password: admin123 - BCrypt encoded)
 INSERT INTO users (username, email, password, first_name, last_name, role, is_active) VALUES
-                                                                                          ('admin', 'admin@tvboot.com', '$2a$12$LQv3c1yqBwEH8QA7K9lI/eOqjzTfT1Cc/Gml7mAyuL.FBIyF8xkfi', 'System', 'Administrator', 'ADMIN', TRUE),
+                                                                                          ('admin', 'admin@tvboot.com', '$2a$12$t8MkCikXiXhmgMnZKaS27ue3jcoGV9WdprT5K3P3yXWd5DYUWq6Hu', 'System', 'Administrator', 'ADMIN', TRUE),
                                                                                           ('manager', 'manager@tvboot.com', '$2a$12$LQv3c1yqBwEH8QA7K9lI/eOqjzTfT1Cc/Gml7mAyuL.FBIyF8xkfi', 'Hotel', 'Manager', 'MANAGER', TRUE),
                                                                                           ('receptionist', 'receptionist@tvboot.com', '$2a$12$LQv3c1yqBwEH8QA7K9lI/eOqjzTfT1Cc/Gml7mAyuL.FBIyF8xkfi', 'Front', 'Desk', 'RECEPTIONIST', TRUE),
-                                                                                          ('technician', 'technician@tvboot.com', '$2a$12$LQv3c1yqBwEH8QA7K9lI/eOqjzTfT1Cc/Gml7mAyuL.FBIyF8xkfi', 'IT', 'Technician', 'TECHNICIAN', TRUE);
-
+                                                                                          ('technician', 'technician@tvboot.com', '$2a$12$LQv3c1yqBwEH8QA7K9lI/eOqjzTfT1Cc/Gml7mAyuL.FBIyF8xkfi', 'IT', 'Technician', 'TECHNICIAN', TRUE),
+                                                                                          ('housekeeper', 'housekeeper@tvboot.com', '$2y$12$JPxGDa3h9g2E8pL07hzQherxcalC8BOEhYz4e1g2UXALwBHSXfU2G', 'HK', 'Housekeeper', 'HOUSEKEEPER', TRUE);
 -- ==========================================
 -- INSERT DEFAULT LANGUAGES
 -- ==========================================

@@ -16,6 +16,10 @@ public class TvChannelDTO {
     private int port;
     private String streamUrl;
     private String logoPath;
+    /**
+     * URL complète vers le logo, générée à l'exécution
+     * Ex: "http://192.168.1.100:8080/api/files/image/logos/b39e29ad-107f-4acb-9fb7-7b61ec4444ac.png"
+     */
     private String logoUrl;
 
     private boolean active;

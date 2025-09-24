@@ -69,6 +69,7 @@ public class DatabaseConfig {
 
         // CRITICAL: MySQL transaction handling fixes
         config.setAutoCommit(false); // Disable auto-commit for proper transaction management
+//        config.setAutoCommit(true);
         config.setTransactionIsolation("TRANSACTION_READ_COMMITTED");
 
         // MySQL 8 specific optimizations

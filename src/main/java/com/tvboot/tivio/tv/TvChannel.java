@@ -52,28 +52,20 @@ public class TvChannel  {
     @JoinColumn(name = "language_id")
     private Language language;
 
-    @Column(name = "logo_url")
-    private String logoUrl;
+
     @Column(name = "logo_path")
     private String logoPath;
 
     @Column(name = "is_active",nullable = false)
-    private Boolean isActive = true;
-
-
-    @Column(name = "is_hd",nullable = true)
-    private Boolean isHD = false;
+    private Boolean active = true;
 
 
     // Hotel-specific fields
     @Column(name = "is_avialable",nullable = true)
-    private Boolean isAvailable = true;
+    private Boolean available = true;
 
-    @Column(name = "sort_order", nullable = false )
-    private Integer sortOrder = 0;
-
-    @Column(name = "comment")
-    private String comment;
+    @Column(name = "sort_order", nullable = true )
+    private int sortOrder = 0;
 
     @CreationTimestamp
     @Column(name = "created_at")
@@ -88,6 +80,5 @@ public class TvChannel  {
     private List<EpgEntry> epg = new ArrayList<>();
 
 
-//    @Column(name = "is_available")
-//    private boolean available;
+
 }

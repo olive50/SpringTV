@@ -200,7 +200,6 @@ public class TvChannelService {
                 .description(createDTO.getDescription())
                 .ip(createDTO.getIp())
                 .port(createDTO.getPort())
-                .logoUrl(createDTO.getLogoUrl())
                 .category(category)
                 .language(language)
                 .build();
@@ -226,7 +225,7 @@ public class TvChannelService {
         if (logoFile != null && !logoFile.isEmpty()) {
             String logoPath = fileStorageService.storeFile(logoFile, LOGO_DIR);
             channel.setLogoPath(logoPath);
-            channel.setLogoUrl(getFullLogoUrl(logoPath));
+
         }
 
         channel = tvChannelRepository.save(channel);
@@ -269,7 +268,6 @@ public class TvChannelService {
                 .description(createDTO.getDescription())
                 .ip(createDTO.getIp())
                 .port(createDTO.getPort())
-                .logoUrl(logoUrl)  // URL du logo sauvegardé
                 .category(category)
                 .language(language)
                 .build();
@@ -325,9 +323,6 @@ public class TvChannelService {
             log.debug("Updated IP:Port to {}:{}", newIp, newPort);
         }
 
-        if (updateDTO.getLogoUrl() != null) {
-            channel.setLogoUrl(updateDTO.getLogoUrl());
-        }
 
         if (updateDTO.getCategoryId() != null) {
             TvChannelCategory category = categoryRepository.findById(updateDTO.getCategoryId())
@@ -496,7 +491,7 @@ public class TvChannelService {
                 .description(channel.getDescription())
                 .ip(channel.getIp())
                 .port(channel.getPort())
-                .logoUrl(channel.getLogoUrl())
+
                 .category(categoryDTO)
                 .language(languageDTO)
                 .build();
@@ -647,8 +642,8 @@ public class TvChannelService {
     public TvChannelStatsDTO getChannelStatistics() {
         // Get basic counts
         long totalChannels = tvChannelRepository.count();
-        long activeChannels = tvChannelRepository.countByIsActive(true);
-        long inactiveChannels = tvChannelRepository.countByIsActive(false);
+        long activeChannels = tvChannelRepository.countByActive(true);
+        long inactiveChannels = tvChannelRepository.countByActive(false);
 
         // Get category statistics
         Map<String, Long> categoryStats = new HashMap<>();

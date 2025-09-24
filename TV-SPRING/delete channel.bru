@@ -1,0 +1,15 @@
+meta {
+  name: delete channel
+  type: http
+  seq: 8
+}
+
+delete {
+  url: http://localhost:8080/api/v1/channels
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

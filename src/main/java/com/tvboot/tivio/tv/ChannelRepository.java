@@ -1,6 +1,7 @@
 package com.tvboot.tivio.tv;
 
 
+import com.tvboot.tivio.language.Language;
 import com.tvboot.tivio.tv.tvcategory.TvChannelCategory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,54 +17,60 @@ import java.util.Optional;
 public interface ChannelRepository extends JpaRepository<TvChannel, Long> {
 
     // Basic pagination methods
-    Page<TvChannel> findByIsActiveTrue(Pageable pageable);
+    Page<TvChannel> findByActiveTrue(Pageable pageable);
 
-    Page<TvChannel> findByIsActiveTrueOrderBySortOrderAscNameAsc(Pageable pageable);
+    Page<TvChannel> findByActiveTrueOrderBySortOrderAscNameAsc(Pageable pageable);
 
     // Count methods
-    long countByIsActiveTrue();
+    long countByActiveTrue();
 
-//    long countByIsActiveTrueAndCategory(TvChannelCategory category);
-    long countByIsActiveTrueAndCategory_name(String categoryName);
+//    long countByActiveTrueAndCategory(TvChannelCategory category);
+    long countByActiveTrueAndCategory_name(String categoryName);
 
     // Find by category with pagination
-    Page<TvChannel> findByIsActiveTrueAndCategoryOrderBySortOrderAscNameAsc(
+    Page<TvChannel> findByActiveTrueAndCategoryOrderBySortOrderAscNameAsc(
             String category, Pageable pageable);
 
     // Find channels available for guests
 
-    long countByIsActiveTrueAndIsAvailableTrue();
+    long countByActiveTrueAndAvailableTrue();
 
 
 
     // Find by language
-    Page<TvChannel> findByIsActiveTrueAndLanguageOrderBySortOrderAscNameAsc(
+    Page<TvChannel> findByLanguage_name(
             String language, Pageable pageable);
 
     // Search functionality
-    @Query("SELECT c FROM TvChannel c WHERE c.isActive = true AND " +
+    @Query("SELECT c FROM TvChannel c WHERE c.active = true AND " +
             "(LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(c.description) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "CAST(c.channelNumber AS string) LIKE CONCAT('%', :search, '%')) " +
             "ORDER BY c.name ASC")
     Page<TvChannel> searchChannels(@Param("search") String search, Pageable pageable);
 
-    @Query("SELECT COUNT(c) FROM TvChannel c WHERE c.isActive = true AND " +
+    @Query("SELECT COUNT(c) FROM TvChannel c WHERE c.active = true AND " +
             "(LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(c.description) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "CAST(c.channelNumber AS string) LIKE CONCAT('%', :search, '%'))")
     long countSearchChannels(@Param("search") String search);
 
     // Find by tvChannel number
-    Optional<TvChannel> findByChannelNumberAndIsActiveTrue(Integer channelNumber);
+    Optional<TvChannel> findByChannelNumberAndActiveTrue(Integer channelNumber);
 
     // Get all categories
-    @Query("SELECT DISTINCT c.category FROM TvChannel c WHERE c.isActive = true ORDER BY c.category.name")
+    @Query("SELECT DISTINCT c.category FROM TvChannel c WHERE c.active = true ORDER BY c.category.name")
     List<String> findAllCategories();
 
     // Get all languages
-    @Query("SELECT DISTINCT c.language FROM TvChannel c WHERE c.isActive = true ORDER BY c.language.name")
+    @Query("SELECT DISTINCT c.language FROM TvChannel c WHERE c.active = true ORDER BY c.language.name")
     List<String> findAllLanguages();
 
-    Page<TvChannel> findByIsActiveTrueAndIsAvailableTrueOrderBySortOrderAscNameAsc(Pageable pageable);
+
+
+    Page<TvChannel> findByActiveTrueAndAvailableTrueOrderBySortOrderAscNameAsc(Pageable pageable);
+
+
+    Page<TvChannel> findByActiveTrueAndLanguageOrderBySortOrderAscNameAsc(String language, Pageable pageable);
+
 }

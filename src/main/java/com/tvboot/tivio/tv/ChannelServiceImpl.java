@@ -1,14 +1,23 @@
 package com.tvboot.tivio.tv;
 
+import com.tvboot.tivio.common.util.FileStorageService;
+import com.tvboot.tivio.tv.dto.TvChannelCreateDTO;
+import com.tvboot.tivio.tv.dto.TvChannelDTO;
+import com.tvboot.tivio.tv.dto.TvChannelMapper;
+import com.tvboot.tivio.tv.dto.TvChannelStatsDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -18,13 +27,24 @@ import java.util.Optional;
 public class ChannelServiceImpl implements ChannelService{
 
     private final ChannelRepository channelRepository;
+    private final TvChannelRepository tvChannelRepository;
+    @Autowired
+    private FileStorageService fileStorageService;
+
+    @Autowired
+    private TvChannelMapper mapper;
+
+    private static final String LOGO_DIR = "channel-logos";
+
+    private String baseUrl = "http://localhost:8080";
+    private String logosPath = "/uploads/logos/channels";
 
     @Override
     @Transactional(readOnly = true)
     public Page<TvChannel> getChannels(int page, int size) {
         log.debug("Getting channels - page: {}, size: {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
-        return channelRepository.findByIsActiveTrueOrderBySortOrderAscNameAsc(pageable);
+        return channelRepository.findAll(pageable);
     }
 
     @Override
@@ -32,7 +52,7 @@ public class ChannelServiceImpl implements ChannelService{
     public Page<TvChannel> getChannelsByCategory(String category, int page, int size) {
         log.debug("Getting channels by category: {} - page: {}, size: {}", category, page, size);
         Pageable pageable = PageRequest.of(page, size);
-        return channelRepository.findByIsActiveTrueAndCategoryOrderBySortOrderAscNameAsc(
+        return channelRepository.findByActiveTrueAndCategoryOrderBySortOrderAscNameAsc(
                 category, pageable);
     }
 
@@ -41,7 +61,7 @@ public class ChannelServiceImpl implements ChannelService{
     public Page<TvChannel> getGuestChannels(int page, int size) {
         log.debug("Getting guest channels - page: {}, size: {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
-        return channelRepository.findByIsActiveTrueAndIsAvailableTrueOrderBySortOrderAscNameAsc(
+        return channelRepository.findByActiveTrueAndAvailableTrueOrderBySortOrderAscNameAsc(
                 pageable);
     }
 
@@ -52,7 +72,7 @@ public class ChannelServiceImpl implements ChannelService{
     public Page<TvChannel> getChannelsByLanguage(String language, int page, int size) {
         log.debug("Getting channels by language: {} - page: {}, size: {}", language, page, size);
         Pageable pageable = PageRequest.of(page, size);
-        return channelRepository.findByIsActiveTrueAndLanguageOrderBySortOrderAscNameAsc(
+        return channelRepository.findByActiveTrueAndLanguageOrderBySortOrderAscNameAsc(
                 language, pageable);
     }
 
@@ -68,21 +88,21 @@ public class ChannelServiceImpl implements ChannelService{
     @Transactional(readOnly = true)
     public long countChannels() {
         log.debug("Counting all active channels");
-        return channelRepository.countByIsActiveTrue();
+        return channelRepository.countByActiveTrue();
     }
 
     @Override
     @Transactional(readOnly = true)
     public long countChannelsByCategory(String category) {
         log.debug("Counting channels by category: {}", category);
-        return channelRepository.countByIsActiveTrueAndCategory_name(category);
+        return channelRepository.countByActiveTrueAndCategory_name(category);
     }
 
     @Override
     @Transactional(readOnly = true)
     public long countGuestChannels() {
         log.debug("Counting guest channels");
-        return channelRepository.countByIsActiveTrueAndIsAvailableTrue();
+        return channelRepository.countByActiveTrueAndAvailableTrue();
     }
 
     @Override
@@ -97,21 +117,18 @@ public class ChannelServiceImpl implements ChannelService{
         log.info("Creating new tvChannel: {}", tvChannel.getName());
 
         // Validate unique tvChannel number
-        if (channelRepository.findByChannelNumberAndIsActiveTrue(tvChannel.getChannelNumber()).isPresent()) {
+        if (channelRepository.findByChannelNumberAndActiveTrue(tvChannel.getChannelNumber()).isPresent()) {
             throw new IllegalArgumentException("TvChannel number already exists: " + tvChannel.getChannelNumber());
         }
 
 
-        if (tvChannel.getIsActive() == null) {
-            tvChannel.setIsActive(true);
+        if (tvChannel.getActive() == null) {
+            tvChannel.setActive(true);
         }
-        if (tvChannel.getIsAvailable() == null) {
-            tvChannel.setIsAvailable(true);
+        if (tvChannel.getAvailable() == null) {
+            tvChannel.setAvailable(true);
         }
 
-        if (tvChannel.getIsHD() == null) {
-            tvChannel.setIsHD(false);
-        }
 
         return channelRepository.save(tvChannel);
     }
@@ -125,7 +142,7 @@ public class ChannelServiceImpl implements ChannelService{
 
         // Check if tvChannel number is being changed and if it's unique
         if (!(existingChannel.getChannelNumber() ==(channelDetails.getChannelNumber()))) {
-            if (channelRepository.findByChannelNumberAndIsActiveTrue(channelDetails.getChannelNumber()).isPresent()) {
+            if (channelRepository.findByChannelNumberAndActiveTrue(channelDetails.getChannelNumber()).isPresent()) {
                 throw new IllegalArgumentException("TvChannel number already exists: " + channelDetails.getChannelNumber());
             }
         }
@@ -135,13 +152,12 @@ public class ChannelServiceImpl implements ChannelService{
         existingChannel.setName(channelDetails.getName());
         existingChannel.setDescription(channelDetails.getDescription());
         existingChannel.setStreamUrl(channelDetails.getStreamUrl());
-        existingChannel.setLogoUrl(channelDetails.getLogoUrl());
         existingChannel.setCategory(channelDetails.getCategory());
         existingChannel.setLanguage(channelDetails.getLanguage());
-        existingChannel.setIsActive(channelDetails.getIsActive());
-        existingChannel.setIsHD(channelDetails.getIsHD());
+        existingChannel.setActive(channelDetails.getActive());
+
         existingChannel.setSortOrder(channelDetails.getSortOrder());
-        existingChannel.setIsAvailable(channelDetails.getIsAvailable());
+        existingChannel.setAvailable(channelDetails.getAvailable());
 
 
         return channelRepository.save(existingChannel);
@@ -155,8 +171,7 @@ public class ChannelServiceImpl implements ChannelService{
                 .orElseThrow(() -> new RuntimeException("TvChannel not found with id: " + id));
 
         // Soft delete - set isActive to false
-        tvChannel.setIsActive(false);
-        channelRepository.save(tvChannel);
+        channelRepository.delete(tvChannel);
     }
 
     @Override
@@ -164,14 +179,14 @@ public class ChannelServiceImpl implements ChannelService{
     public Optional<TvChannel> getChannelById(Long id) {
         log.debug("Getting tvChannel by id: {}", id);
         return channelRepository.findById(id)
-                .filter(TvChannel::getIsActive);
+                .filter(TvChannel::getActive);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<TvChannel> getChannelByNumber(Integer channelNumber) {
         log.debug("Getting tvChannel by number: {}", channelNumber);
-        return channelRepository.findByChannelNumberAndIsActiveTrue(channelNumber);
+        return channelRepository.findByChannelNumberAndActiveTrue(channelNumber);
     }
 
     @Override
@@ -194,17 +209,16 @@ public class ChannelServiceImpl implements ChannelService{
 
         // Validate each tvChannel
         for (TvChannel tvChannel : channels) {
-            if (channelRepository.findByChannelNumberAndIsActiveTrue(tvChannel.getChannelNumber()).isPresent()) {
+            if (channelRepository.findByChannelNumberAndActiveTrue(tvChannel.getChannelNumber()).isPresent()) {
                 throw new IllegalArgumentException("TvChannel number already exists: " + tvChannel.getChannelNumber());
             }
 
             // Set defaults
-            if (tvChannel.getSortOrder() == null) tvChannel.setSortOrder(0);
-            if (tvChannel.getIsActive() == null) tvChannel.setIsActive(true);
-            if (tvChannel.getIsAvailable() == null) tvChannel.setIsAvailable(true);
 
-            if (tvChannel.getIsHD() == null) tvChannel.setIsHD(false);
-        }
+            if (tvChannel.getActive() == null) tvChannel.setActive(true);
+            if (tvChannel.getAvailable() == null) tvChannel.setAvailable(true);
+
+                   }
 
         return channelRepository.saveAll(channels);
     }
@@ -219,4 +233,72 @@ public class ChannelServiceImpl implements ChannelService{
         tvChannel.setSortOrder(newOrder);
         channelRepository.save(tvChannel);
     }
+
+    public TvChannelDTO createChannelWithLogo(TvChannelCreateDTO createDTO, MultipartFile logoFile) {
+        // Save channel first
+        TvChannel channel = mapper.toEntity(createDTO);
+
+        // Handle logo upload
+        if (logoFile != null && !logoFile.isEmpty()) {
+            String logoPath = fileStorageService.storeFile(logoFile, LOGO_DIR);
+            channel.setLogoPath(logoPath);
+
+        }
+
+        channel = channelRepository.save(channel);
+        return mapper.toDTO(channel);
+    }
+
+    public String getFullLogoUrl(String logoPath) {
+        // If it's already a full URL, return as is
+        if (logoPath == null || logoPath.startsWith("http://") || logoPath.startsWith("https://")) {
+            return logoPath;
+        }
+
+        // If logoPath starts with /, remove it to avoid double slashes
+        if (logoPath.startsWith("/")) {
+            logoPath = logoPath.substring(1);
+        }
+
+        return baseUrl + "/" + logoPath;
+    }
+
+    /**
+     * Get comprehensive channel statistics
+     */
+    public TvChannelStatsDTO getChannelStatistics() {
+        // Get basic counts
+        long totalChannels = tvChannelRepository.count();
+        long activeChannels = tvChannelRepository.countByActive(true);
+        long inactiveChannels = tvChannelRepository.countByActive(false);
+
+        // Get category statistics
+        Map<String, Long> categoryStats = new HashMap<>();
+        List<Object[]> categoryResults = tvChannelRepository.countByCategory();
+        for (Object[] result : categoryResults) {
+            String categoryName = (String) result[0];
+            Long count = (Long) result[1];
+            categoryStats.put(categoryName, count);
+        }
+
+        // Get language statistics
+        Map<String, Long> languageStats = new HashMap<>();
+        List<Object[]> languageResults = tvChannelRepository.countByLanguage();
+        for (Object[] result : languageResults) {
+            String languageName = (String) result[0];
+            Long count = (Long) result[1];
+            languageStats.put(languageName, count);
+        }
+
+        return TvChannelStatsDTO.builder()
+                .total(totalChannels)
+                .active(activeChannels)
+                .inactive(inactiveChannels)
+                .byCategory(categoryStats)
+                .byLanguage(languageStats)
+                .build();
+    }
+
+
+
 }

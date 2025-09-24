@@ -1,0 +1,39 @@
+meta {
+  name: channel Logo
+  type: http
+  seq: 9
+}
+
+post {
+  url: http://localhost:8080/api/channels/with-logo
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc1ODQ3NDQwMCwiZXhwIjoxNzU4NTYwODAwfQ.MjNmslHlAjS1l0fVZ2cbLs9UjiNiyf58ixqLWnm4M8oVie8Ua4yozjfgam7zfyO02jbkLMw2n1cKyjNu09-lrw"
+}
+
+
+body:multipart-form {
+  channel: @text(application/json) '''
+    {
+      "channelNumber": 111,
+      "name": "bnn International",
+      "description": "International news and current affairs",
+      "ip": "192.168.1.122",
+      "port": 8001,
+      "streamUrl": "aaaaaaaaaaaa",
+      "logoPath": null,
+      "logoUrl": "/logos/cnn.png",
+      "active": false,
+      "languageId": 1,
+      "categoryId": 1
+    }
+  '''
+  logo: @file(image/png) (C:\Users\mk\Desktop\claude\angularSpring\tv-logos-png\tv-logos-main\countries\philippines\inc-tv-ph.png)
+}
+
+settings {
+  encodeUrl: true
+}

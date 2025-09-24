@@ -57,7 +57,13 @@ public class SecurityConfig {
 
             // Static resources
             "/uploads/**",
-            "/assets/**"
+            "/assets/**",
+
+            //temporaire kan
+            "/api/channels/**",
+            "/api/v1/channels/**",
+            "/api/files/**"
+
     };
 
     /**
