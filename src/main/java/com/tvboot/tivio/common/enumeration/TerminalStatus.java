@@ -1,4 +1,4 @@
-package com.tvboot.tivio.terminal;
+package com.tvboot.tivio.common.enumeration;
 public enum TerminalStatus {
     ACTIVE,
     INACTIVE,

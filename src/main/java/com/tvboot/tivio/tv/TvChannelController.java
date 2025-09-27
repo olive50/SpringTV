@@ -2,295 +2,596 @@ package com.tvboot.tivio.tv;
 
 import com.tvboot.tivio.common.audit.Auditable;
 import com.tvboot.tivio.common.dto.respone.TvBootHttpResponse;
-import com.tvboot.tivio.tv.dto.TvChannelCreateDTO;
-import com.tvboot.tivio.tv.dto.TvChannelDTO;
-import com.tvboot.tivio.tv.dto.TvChannelStatsDTO;
-import com.tvboot.tivio.tv.dto.TvChannelUpdateDTO;
+
+
+import com.tvboot.tivio.tv.dto.*;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
-import jakarta.validation.Validator;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
-@Tag(name = "Chaînes TV", description = "Gestion des chaînes de télévision")
 @RestController
 @RequestMapping("/api/channels")
-@CrossOrigin(origins = "http://localhost:4200")
 @RequiredArgsConstructor
-@SecurityRequirement(name = "Bearer Authentication")
 @Slf4j
+@Validated
+@CrossOrigin(origins = "*") // Configure as needed for your frontend
 public class TvChannelController {
 
     private final TvChannelService tvChannelService;
-
-    @Autowired
-    private Validator validator;
-
-    @Operation(
-            summary = "Liste des chaînes",
-            description = "Récupère toutes les chaînes TV avec leurs catégories et langues"
-    )
-    @GetMapping
-    @Auditable(action = "LIST_CHANNELS", resource = "TV_CHANNEL")
-    public ResponseEntity<List<TvChannelDTO>> getAllChannels() {
-        log.debug("Received request to get all TV channels");
-        List<TvChannelDTO> channels = tvChannelService.getAllChannels();
-        log.debug("Returning {} TV channels", channels.size());
-        return ResponseEntity.ok(channels);
-    }
-
-    @Operation(
-            summary = "Chaînes paginées",
-            description = "Récupère les chaînes TV avec pagination et tri"
-    )
-    @GetMapping("/paged")
-    public ResponseEntity<Page<TvChannelDTO>> getAllChannelsPaged(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "channelNumber") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
-
-        Sort sort = sortDir.equalsIgnoreCase("desc") ?
-                Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
-
-        Pageable pageable = PageRequest.of(page, size, sort);
-        Page<TvChannelDTO> channels = tvChannelService.getAllChannels(pageable);
-        return ResponseEntity.ok(channels);
-    }
+    private final TvChannelMapper channelMapper;
 
     /**
      * Get all channels with pagination
      */
+    @GetMapping
+    public ResponseEntity<TvBootHttpResponse> getChannels(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
 
-    @GetMapping("/{id}")
-    public ResponseEntity<TvChannelDTO> getChannelById(@PathVariable Long id) {
-        return tvChannelService.getChannelById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @GetMapping("/number/{channelNumber}")
-    public ResponseEntity<TvChannelDTO> getChannelByNumber(@PathVariable int channelNumber) {
-        return tvChannelService.getChannelByNumber(channelNumber)
-                .map(channel -> ResponseEntity.ok(channel))
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @GetMapping("/category/{categoryId}")
-    public ResponseEntity<List<TvChannelDTO>> getChannelsByCategory(@PathVariable Long categoryId) {
-        List<TvChannelDTO> channels = tvChannelService.getChannelsByCategory(categoryId);
-        return ResponseEntity.ok(channels);
-    }
-
-    @GetMapping("/language/{languageId}")
-    public ResponseEntity<List<TvChannelDTO>> getChannelsByLanguage(@PathVariable Long languageId) {
-        List<TvChannelDTO> channels = tvChannelService.getChannelsByLanguage(languageId);
-        return ResponseEntity.ok(channels);
-    }
-
-    @GetMapping("/search")
-    public ResponseEntity<Page<TvChannelDTO>> searchChannels(
-            @RequestParam String name,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
-        Pageable pageable = PageRequest.of(page, size);
-        Page<TvChannelDTO> channels = tvChannelService.searchChannelsByName(name, pageable);
-        return ResponseEntity.ok(channels);
-    }
-
-    @Operation(
-            summary = "Créer une chaîne",
-            description = "Crée une nouvelle chaîne TV"
-    )
-    @PostMapping
-    @Auditable(action = "CREATE_CHANNEL", resource = "TV_CHANNEL", logParams = true, logResult = true)
-    public ResponseEntity<TvChannelDTO> createChannel(@Valid @RequestBody TvChannelCreateDTO createDTO) {
-        log.info("Received request to create TV channel: {}", createDTO.getName());
+        log.info("Getting channels - page: {}, size: {}", page, size);
 
         try {
-            TvChannelDTO createdChannel = tvChannelService.createChannel(createDTO);
-            log.info("Successfully created TV channel with ID: {}", createdChannel.getId());
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdChannel);
+            Page<TvChannel> channelPage = tvChannelService.getChannels(page, size);
+            long total = tvChannelService.countChannels();
+
+            // Convert entities to DTOs with logo URLs
+            List<TvChannelResponseDTO> channelDTOs = channelPage.getContent().stream()
+                    .map(channelMapper::toDTO)
+                    .collect(Collectors.toList());
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Channels retrieved successfully")
+                    .build()
+                    .addChannels(channelDTOs)  // Using DTOs instead of entities
+                    .addPagination(page, size, total);
+
+            return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            log.error("Failed to create TV channel: {}", createDTO.getName(), e);
-            throw e;
+            log.error("Error retrieving channels", e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Error retrieving channels",
+                    e.getMessage()
+            );
         }
     }
 
-    @Operation(
-            summary = "Créer une chaîne avec un logo",
-            description = "Crée une nouvelle chaîne TV et télécharge son logo en même temps"
-    )
-    /*
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Chaîne créée avec succès"),
-            @ApiResponse(responseCode = "400", description = "Données invalides"),
-            @ApiResponse(responseCode = "413", description = "Fichier trop volumineux"),
-            @ApiResponse(responseCode = "415", description = "Type de fichier non supporté"),
-            @ApiResponse(responseCode = "500", description = "Erreur serveur")
-    })
-    @PostMapping(path = "/with-logo", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
-    @Auditable(action = "CREATE_CHANNEL_WITH_LOGO", resource = "TV_CHANNEL", logParams = true, logResult = true)
-    public ResponseEntity<?> createChannelWithLogo(
-            @Valid @RequestPart("channelData") TvChannelCreateDTO createDTO,
-            @RequestPart("logoFile") MultipartFile logoFile) {
+    /**
+     * Get channels by category with pagination
+     */
+    @GetMapping("/category/{category}")
+    public ResponseEntity<TvBootHttpResponse> getChannelsByCategory(
+            @PathVariable String category,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
 
-        log.info("Received request to create TV channel with logo: {}", createDTO.getName());
+        log.info("Getting channels by category: {} - page: {}, size: {}", category, page, size);
 
         try {
-            // Validation du fichier logo
-            if (logoFile.isEmpty()) {
-                log.warn("Logo file is empty for channel: {}", createDTO.getName());
-                return ResponseEntity.badRequest().body(createErrorResponse("EMPTY_LOGO_FILE",
-                        "Logo file is empty"));
+            Page<TvChannel> channelPage = tvChannelService.getChannelsByCategory(category, page, size);
+            long total = tvChannelService.countChannelsByCategory(category);
+
+            // Convert entities to DTOs with logo URLs
+            List<TvChannelResponseDTO> channelDTOs = channelPage.getContent().stream()
+                    .map(channelMapper::toDTO)
+                    .collect(Collectors.toList());
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Channels retrieved successfully for category: " + category)
+                    .build()
+                    .addChannels(channelDTOs)
+                    .addPagination(page, size, total)
+                    .addData("category", category);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error retrieving channels for category: {}", category, e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Error retrieving channels for category",
+                    e.getMessage()
+            );
+        }
+    }
+
+    /**
+     * Get guest-available channels
+     */
+    @GetMapping("/guest")
+    public ResponseEntity<TvBootHttpResponse> getGuestChannels(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+
+        log.info("Getting guest channels - page: {}, size: {}", page, size);
+
+        try {
+            Page<TvChannel> channelPage = tvChannelService.getGuestChannels(page, size);
+            long total = tvChannelService.countGuestChannels();
+
+            // Convert entities to DTOs with logo URLs
+            List<TvChannelResponseDTO> channelDTOs = channelPage.getContent().stream()
+                    .map(channelMapper::toDTO)
+                    .collect(Collectors.toList());
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Guest channels retrieved successfully")
+                    .build()
+                    .addChannels(channelDTOs)
+                    .addPagination(page, size, total)
+                    .addData("channelType", "guest");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error retrieving guest channels", e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Error retrieving guest channels",
+                    e.getMessage()
+            );
+        }
+    }
+
+    /**
+     * Get channels by language
+     */
+    @GetMapping("/language/{language}")
+    public ResponseEntity<TvBootHttpResponse> getChannelsByLanguage(
+            @PathVariable String language,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+
+        log.info("Getting channels by language: {} - page: {}, size: {}", language, page, size);
+
+        try {
+            Page<TvChannel> channelPage = tvChannelService.getChannelsByLanguage(language, page, size);
+            long total = channelPage.getTotalElements();
+
+            // Convert entities to DTOs with logo URLs
+            List<TvChannelResponseDTO> channelDTOs = channelPage.getContent().stream()
+                    .map(channelMapper::toDTO)
+                    .collect(Collectors.toList());
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Channels retrieved successfully for language: " + language)
+                    .build()
+                    .addChannels(channelDTOs)
+                    .addPagination(page, size, total)
+                    .addData("language", language);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error retrieving channels for language: {}", language, e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Error retrieving channels for language",
+                    e.getMessage()
+            );
+        }
+    }
+
+    /**
+     * Search channels
+     */
+    @GetMapping("/search")
+    public ResponseEntity<TvBootHttpResponse> searchChannels(
+     @RequestParam(defaultValue = "0") @Min(0) int page,
+    @RequestParam(defaultValue = "20")  @Min(1) @Max(100) int size,
+     @RequestParam(name = "q", required = false, defaultValue = "") String q,
+    @RequestParam(required = false) String  categoryId,
+    @RequestParam(required = false) String  languageId,
+    @RequestParam(required = false) Boolean isActive) {
+
+        log.info("Searching channels with query: '{}' - page: {}, size: {} ...", q, page, size);
+
+
+        String searchQuery = (q != null) ? q.trim() : null;
+        if (searchQuery != null && searchQuery.isEmpty()) {
+            searchQuery = null; // treat empty string as no search
+        }
+
+        try {
+            Long categoryIdLong = parseStringToLong(categoryId);
+            Long languageIdLong = parseStringToLong(languageId);
+
+            Page<TvChannel> result = tvChannelService.getChannels(page, size, searchQuery, categoryIdLong, languageIdLong, isActive);
+//            long total = channelService.countSearchChannels(q.trim());
+
+            // Convert entities to DTOs with logo URLs
+            List<TvChannelResponseDTO> channelDTOs = result.getContent().stream()
+                    .map(channelMapper::toDTO)
+                    .collect(Collectors.toList());
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Search completed successfully")
+                    .build()
+                    .addChannels(channelDTOs)
+                    .addPagination(page, size, result.getTotalElements())
+                    .addData("searchQuery", q.trim())
+                    .addData("resultsFound", result.getTotalElements());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error searching channels with query: '{}'", q, e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Error searching channels",
+                    e.getMessage()
+            );
+        }
+    }
+
+    /**
+            * Méthode utilitaire pour convertir String vers Long de manière sécurisée
+    */
+    private Long parseStringToLong(String value) {
+        if (value == null || value.trim().isEmpty() ||
+                "null".equalsIgnoreCase(value.trim())) {
+            return null;
+        }
+
+        try {
+            return Long.parseLong(value.trim());
+        } catch (NumberFormatException e) {
+            log.warn("Invalid number format: '{}', treating as null", value);
+            return null;
+        }
+    }
+
+    /**
+     * Get tvChannel by ID
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<TvBootHttpResponse> getChannelById(@PathVariable Long id) {
+        log.info("Getting tvChannel by id: {}", id);
+
+        try {
+            Optional<TvChannel> tvChannel = tvChannelService.getChannelById(id);
+
+            if (tvChannel.isPresent()) {
+                // Convert entity to DTO with logo URL
+                TvChannelResponseDTO channelDTO = channelMapper.toDTO(tvChannel.get());
+
+                TvBootHttpResponse response = TvBootHttpResponse.success()
+                        .message("TvChannel found")
+                        .build()
+                        .addChannel(channelDTO);
+
+                return ResponseEntity.ok(response);
+            } else {
+                return TvBootHttpResponse.notFoundResponse("TvChannel not found with id: " + id);
             }
 
-            // Créer la chaîne avec le logo
-            TvChannelDTO createdChannel = tvChannelService.createChannelWithLogo(createDTO, logoFile);
-            log.info("Successfully created TV channel with logo - ID: {}, Logo: {}",
-                    createdChannel.getId(), createdChannel.getLogoUrl());
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdChannel);
-
-        } catch (IOException e) {
-            log.error("I/O error creating channel with logo: {}", createDTO.getName(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("LOGO_UPLOAD_IO_ERROR",
-                            "Failed to upload logo due to I/O error: " + e.getMessage()));
-
-        } catch (IllegalArgumentException e) {
-            log.error("Invalid file type for channel logo: {}", createDTO.getName(), e);
-            return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-                    .body(createErrorResponse("INVALID_FILE_TYPE",
-                            "Invalid file type. Only image files are supported."));
-
         } catch (Exception e) {
-            log.error("Unexpected error creating channel with logo: {}", createDTO.getName(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("CHANNEL_CREATION_ERROR",
-                            "Failed to create channel: " + e.getMessage()));
+            log.error("Error retrieving tvChannel with id: {}", id, e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Error retrieving tvChannel",
+                    e.getMessage()
+            );
         }
     }
 
-    @Operation(summary = "Modifier une chaîne")
-    @PutMapping("/{id}")
-    @Auditable(action = "UPDATE_CHANNEL", resource = "TV_CHANNEL", logParams = true)
-    public ResponseEntity<TvChannelDTO> updateChannel(
-            @PathVariable Long id,
-            @Valid @RequestBody TvChannelUpdateDTO updateDTO) {
-
-        log.info("Received request to update TV channel with ID: {}", id);
+    /**
+     * Get tvChannel by number
+     */
+    @GetMapping("/number/{channelNumber}")
+    public ResponseEntity<TvBootHttpResponse> getChannelByNumber(@PathVariable Integer channelNumber) {
+        log.info("Getting tvChannel by number: {}", channelNumber);
 
         try {
-            TvChannelDTO updatedChannel = tvChannelService.updateChannel(id, updateDTO);
-            log.info("Successfully updated TV channel: {}", updatedChannel.getName());
-            return ResponseEntity.ok(updatedChannel);
+            Optional<TvChannel> tvChannel = tvChannelService.getChannelByNumber(channelNumber);
+
+            if (tvChannel.isPresent()) {
+                // Convert entity to DTO with logo URL
+                TvChannelResponseDTO channelDTO = channelMapper.toDTO(tvChannel.get());
+
+                TvBootHttpResponse response = TvBootHttpResponse.success()
+                        .message("TvChannel found")
+                        .build()
+                        .addChannel(channelDTO);
+
+                return ResponseEntity.ok(response);
+            } else {
+                TvBootHttpResponse response = TvBootHttpResponse.channelNotFound(channelNumber.toString())
+                        .build();
+                return ResponseEntity.status(404).body(response);
+            }
 
         } catch (Exception e) {
-            log.error("Failed to update TV channel with ID: {}", id, e);
-            throw e;
+            log.error("Error retrieving tvChannel with number: {}", channelNumber, e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Error retrieving tvChannel",
+                    e.getMessage()
+            );
         }
     }
 
+    /**
+     * Create new tvChannel
+     */
+    @PostMapping
+    public ResponseEntity<TvBootHttpResponse> createChannel(@Valid @RequestBody TvChannelCreateDTO creatDTO) {
+        log.info("Creating new tvChannel: {}", creatDTO.getName());
 
-*/
+        try {
+            TvChannel createdChannel = tvChannelService.createChannel(creatDTO);
 
-    // CREATE - With Logo
+            // Convert entity to DTO with logo URL
+            TvChannelResponseDTO channelDTO = channelMapper.toDTO(createdChannel);
+
+            TvBootHttpResponse response = TvBootHttpResponse.created()
+                    .message("TvChannel created successfully")
+                    .build()
+                    .addChannel(channelDTO);
+
+            return ResponseEntity.status(201).body(response);
+
+        } catch (IllegalArgumentException e) {
+            log.warn("Validation error creating tvChannel: {}", e.getMessage());
+            return TvBootHttpResponse.badRequestResponse(e.getMessage());
+
+        } catch (Exception e) {
+            log.error("Error creating tvChannel", e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Error creating tvChannel",
+                    e.getMessage()
+            );
+        }
+    }
+
     @PostMapping(path = "/with-logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<TvChannelDTO> createChannelWithLogo(
+    public ResponseEntity<TvChannelResponseDTO> createChannelWithLogo(
             @RequestPart("channel") @Valid TvChannelCreateDTO createDTO,
             @RequestPart("logo") MultipartFile logoFile) {
-        TvChannelDTO created = tvChannelService.createChannelWithLogo(createDTO, logoFile);
+        TvChannelResponseDTO created = tvChannelService.createChannelWithLogo(createDTO, logoFile);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    @Operation(
+            summary = "Modifier une chaîne avec logo",
+            description = "Met à jour une chaîne TV et éventuellement son logo"
+    )
+    @PutMapping(path = "/{id}/with-logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Auditable(action = "UPDATE_CHANNEL_WITH_LOGO", resource = "TV_CHANNEL", logParams = true)
+    public ResponseEntity<TvChannelResponseDTO> updateChannelWithLogo(
+            @PathVariable Long id,
+            @RequestPart("channel") @Valid TvChannelUpdateDTO updateDTO,
+            @RequestPart(value = "logo", required = false) MultipartFile logoFile) {
 
+        log.info("Received request to update TV channel with logo - ID: {}", id);
+
+        try {
+            TvChannelResponseDTO updatedChannel = tvChannelService.updateChannelWithLogo(id, updateDTO, logoFile);
+            log.info("Successfully updated TV channel with logo: {}", updatedChannel.getName());
+            return ResponseEntity.ok(updatedChannel);
+
+        } catch (Exception e) {
+            log.error("Failed to update TV channel with logo - ID: {}", id, e);
+            throw e;
+        }
+    }
+    /**
+     * Update tvChannel
+     */
+    /*
+    @PutMapping("/{id}")
+    public ResponseEntity<TvBootHttpResponse> updateChannel(
+            @PathVariable Long id,
+            @Valid @RequestBody TvChannel tvChannel) {
+
+        log.info("Updating tvChannel with id: {}", id);
+
+        try {
+            TvChannel updatedChannel = channelService.updateChannel(id, tvChannel);
+
+            // Convert entity to DTO with logo URL
+            TvChannelDTO channelDTO = channelMapper.toDTO(updatedChannel);
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("TvChannel updated successfully")
+                    .build()
+                    .addChannel(channelDTO);
+
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            log.warn("Validation error updating tvChannel: {}", e.getMessage());
+            return TvBootHttpResponse.badRequestResponse(e.getMessage());
+
+        } catch (RuntimeException e) {
+            log.warn("TvChannel not found for update: {}", e.getMessage());
+            return TvBootHttpResponse.notFoundResponse(e.getMessage());
+
+        } catch (Exception e) {
+            log.error("Error updating tvChannel with id: {}", id, e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Error updating tvChannel",
+                    e.getMessage()
+            );
+        }
+    }
+*/
     @Operation(summary = "Modifier une chaîne")
     @PutMapping("/{id}")
     @Auditable(action = "UPDATE_CHANNEL", resource = "TV_CHANNEL", logParams = true)
-    public ResponseEntity<TvChannelDTO> updateChannel(
+    public ResponseEntity<TvBootHttpResponse> updateChannel(
             @PathVariable Long id,
             @Valid @RequestBody TvChannelUpdateDTO updateDTO) {
 
         log.info("Received request to update TV channel with ID: {}", id);
 
         try {
-            TvChannelDTO updatedChannel = tvChannelService.updateChannel(id, updateDTO);
+            TvChannelResponseDTO updatedChannel = tvChannelService.updateChannel(id, updateDTO);
             log.info("Successfully updated TV channel: {}", updatedChannel.getName());
-            return ResponseEntity.ok(updatedChannel);
+
+            // Convert entity to DTO with logo URL
+
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("TvChannel updated successfully")
+                    .build()
+                    .addChannel(updatedChannel);
+
+            return ResponseEntity.ok(response);
+
 
         } catch (Exception e) {
             log.error("Failed to update TV channel with ID: {}", id, e);
-            throw e;
+
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Error updating tvChannel",
+                    e.getMessage()
+            );
         }
     }
-    @Operation(summary = "Supprimer une chaîne")
+    /**
+     * Create channels in bulk
+     */
+    @PostMapping("/bulk")
+    public ResponseEntity<TvBootHttpResponse> createChannelsInBulk(@Valid @RequestBody List<TvChannel> channels) {
+        log.info("Creating {} channels in bulk", channels.size());
+
+        if (channels.isEmpty()) {
+            return TvBootHttpResponse.badRequestResponse("TvChannel list cannot be empty");
+        }
+
+        try {
+            List<TvChannel> createdChannels = tvChannelService.createChannelsInBulk(channels);
+
+            // Convert entities to DTOs with logo URLs
+            List<TvChannelResponseDTO> channelDTOs = createdChannels.stream()
+                    .map(channelMapper::toDTO)
+                    .collect(Collectors.toList());
+
+            TvBootHttpResponse response = TvBootHttpResponse.created()
+                    .message("Channels created successfully in bulk")
+                    .build()
+                    .addChannels(channelDTOs)
+                    .addCount(channelDTOs.size());
+
+            return ResponseEntity.status(201).body(response);
+
+        } catch (IllegalArgumentException e) {
+            log.warn("Validation error in bulk creation: {}", e.getMessage());
+            return TvBootHttpResponse.badRequestResponse(e.getMessage());
+
+        } catch (Exception e) {
+            log.error("Error creating channels in bulk", e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Error creating channels in bulk",
+                    e.getMessage()
+            );
+        }
+    }
+
+    /**
+     * Get recently added channels
+     */
+    @GetMapping("/recent")
+    public ResponseEntity<TvBootHttpResponse> getRecentChannels(
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int limit) {
+
+        log.info("Getting {} recent channels", limit);
+
+        try {
+            // Get first page with limit size to get most recent
+            Page<TvChannel> channelPage = tvChannelService.getChannels(0, limit);
+
+            // Convert entities to DTOs with logo URLs
+            List<TvChannelResponseDTO> channelDTOs = channelPage.getContent().stream()
+                    .map(channelMapper::toDTO)
+                    .collect(Collectors.toList());
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Recent channels retrieved successfully")
+                    .build()
+                    .addChannels(channelDTOs)
+                    .addData("limit", limit)
+                    .addCount(channelDTOs.size());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error retrieving recent channels", e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Error retrieving recent channels",
+                    e.getMessage()
+            );
+        }
+    }
+
+    // Les autres méthodes restent inchangées car elles ne retournent pas de channels
+    // (deleteChannel, getAllCategories, getAllLanguages, updateChannelOrder, promoteChannel, getChannelStatistics)
+
+    /**
+     * Delete tvChannel (soft delete)
+     */
     @DeleteMapping("/{id}")
-    @Auditable(action = "DELETE_CHANNEL", resource = "TV_CHANNEL")
-    public ResponseEntity<Void> deleteChannel(@PathVariable Long id) {
-        log.info("Received request to delete TV channel with ID: {}", id);
+    public ResponseEntity<TvBootHttpResponse> deleteChannel(@PathVariable Long id) {
+        log.info("Deleting tvChannel with id: {}", id);
 
         try {
             tvChannelService.deleteChannel(id);
-            log.info("Successfully deleted TV channel with ID: {}", id);
-            return ResponseEntity.noContent().build();
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("TvChannel deleted successfully")
+                    .build()
+                    .addData("deletedChannelId", id);
+
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            log.warn("TvChannel not found for deletion: {}", e.getMessage());
+            return TvBootHttpResponse.notFoundResponse(e.getMessage());
 
         } catch (Exception e) {
-            log.error("Failed to delete TV channel with ID: {}", id, e);
-            throw e;
+            log.error("Error deleting tvChannel with id: {}", id, e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Error deleting tvChannel",
+                    e.getMessage()
+            );
         }
     }
 
-
-
-    /**
-     * Méthode utilitaire pour créer une réponse d'erreur standardisée
-     */
-    private Map<String, Object> createErrorResponse(String errorCode, String message) {
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("error", errorCode);
-        errorResponse.put("message", message);
-        errorResponse.put("timestamp", System.currentTimeMillis());
-        return errorResponse;
-    }
-
-    /**
-     * Get channel statistics
-     */
+    // ... autres méthodes utilitaires inchangées (categories, languages, statistics, etc.)
     @GetMapping("/stats")
-    public ResponseEntity<TvChannelStatsDTO> getChannelStats() {
-        TvChannelStatsDTO stats = tvChannelService.getChannelStatistics();
-        return ResponseEntity.ok(stats);
+    public ResponseEntity<TvBootHttpResponse> getChannelStats() {
+        log.info("Getting channel statistics");
+
+        try {
+            TvChannelStatsDTO stats = tvChannelService.getChannelStatistics();
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Channel statistics retrieved successfully")
+                    .build()
+                    .addData("total", stats.getTotal())
+                    .addData("active", stats.getActive())
+                    .addData("inactive", stats.getInactive())
+                    .addData("byCategory", stats.getByCategory())
+                    .addData("byLanguage", stats.getByLanguage());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error retrieving channel statistics", e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Error retrieving channel statistics",
+                    e.getMessage()
+            );
+        }
     }
-
-    /**
-     * Get detailed statistics (includes zero counts)
-     */
-    @GetMapping("/stats/detailed")
-    public ResponseEntity<TvChannelStatsDTO> getDetailedStats() {
-        TvChannelStatsDTO stats = tvChannelService.getDetailedStatistics();
-        return ResponseEntity.ok(stats);
-    }
-
-
 }

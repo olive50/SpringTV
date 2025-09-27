@@ -50,7 +50,8 @@ public class TvChannelCreateDTO {
     private String streamUrl;
     private int sortOrder;
 
-    private boolean active = true;
+    private Boolean active = true;
+    private Boolean available = true;
 
 
 }

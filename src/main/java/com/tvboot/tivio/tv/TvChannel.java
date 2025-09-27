@@ -61,7 +61,7 @@ public class TvChannel  {
 
 
     // Hotel-specific fields
-    @Column(name = "is_avialable",nullable = true)
+    @Column(name = "is_available",nullable = true)
     private Boolean available = true;
 
     @Column(name = "sort_order", nullable = true )

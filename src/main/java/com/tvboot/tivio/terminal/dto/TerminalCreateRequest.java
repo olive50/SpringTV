@@ -1,6 +1,6 @@
 package com.tvboot.tivio.terminal.dto;
 
-import com.tvboot.tivio.terminal.DeviceType;
+import com.tvboot.tivio.common.enumeration.DeviceType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 public class TerminalCreateRequest {
     @NotBlank(message = "Terminal ID is required")
     @Size(min = 3, max = 20, message = "Terminal ID must be between 3 and 20 characters")
-    private String terminalId;
+    private String terminalCode;
 
     @NotNull(message = "Device type is required")
     private DeviceType deviceType;

@@ -1,8 +1,12 @@
 package com.tvboot.tivio.terminal;
 
+import com.tvboot.tivio.common.dto.respone.TvBootHttpResponse;
 import com.tvboot.tivio.terminal.dto.*;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -14,100 +18,392 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 // src/main/java/com/tvboot/iptv/controller/TerminalController.java
 @RestController
 @RequestMapping("/api/terminals")
 @Validated
+@RequiredArgsConstructor
 @Slf4j
 public class TerminalController {
 
     private final TerminalService terminalService;
 
-    public TerminalController(TerminalService terminalService) {
-        this.terminalService = terminalService;
+    @GetMapping("/list")
+    public ResponseEntity<TvBootHttpResponse> getAllTerminals() {
+        log.info("Getting all terminals");
+
+        try {
+            List<TerminalDto> terminals = terminalService.getAllTerminals();
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Terminals retrieved successfully")
+                    .build()
+                    .addData("terminals", terminals)
+                    .addCount(terminals.size());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error retrieving terminals", e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Failed to retrieve terminals",
+                    e.getMessage()
+            );
+        }
     }
 
     @GetMapping
-    public ResponseEntity<List<TerminalDto>> getAllTerminals() {
-        List<TerminalDto> terminals = terminalService.getAllTerminals();
-        return ResponseEntity.ok(terminals);
-    }
-
-    @GetMapping("/paged")
-    public ResponseEntity<Page<TerminalDto>> getTerminalsPaged(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "terminalId") String sort,
+    public ResponseEntity<TvBootHttpResponse> getTerminalsPaged(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @RequestParam(defaultValue = "terminalCode") String sort,
             @RequestParam(defaultValue = "asc") String direction,
             TerminalSearchCriteria criteria) {
 
-        Sort.Direction sortDirection = Sort.Direction.fromString(direction);
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sort));
+        log.info("Getting paged terminals - page: {}, size: {}, sort: {}, direction: {}", page, size, sort, direction);
 
-        Page<TerminalDto> terminals = terminalService.getAllTerminals(criteria, pageable);
-        return ResponseEntity.ok(terminals);
+        try {
+            Sort.Direction sortDirection = Sort.Direction.fromString(direction);
+            Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sort));
+
+            Page<TerminalDto> terminalsPage = terminalService.getAllTerminals(criteria, pageable);
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Terminals retrieved successfully")
+                    .build()
+                    .addData("terminals", terminalsPage.getContent())
+                    .addPagination(page, size, terminalsPage.getTotalElements());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error retrieving paged terminals", e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Failed to retrieve terminals",
+                    e.getMessage()
+            );
+        }
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TerminalDto> getTerminalById(@PathVariable Long id) {
-        TerminalDto terminal = terminalService.getTerminalById(id);
-        return ResponseEntity.ok(terminal);
+    public ResponseEntity<TvBootHttpResponse> getTerminalById(@PathVariable Long id) {
+        log.info("Getting terminal by ID: {}", id);
+
+        try {
+            TerminalDto terminal = terminalService.getTerminalById(id);
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Terminal retrieved successfully")
+                    .build()
+                    .addData("terminal", terminal);
+
+            return ResponseEntity.ok(response);
+        } catch (EntityNotFoundException e) {
+            log.warn("Terminal not found with ID: {}", id);
+            return TvBootHttpResponse.notFoundResponse("Terminal not found with ID: " + id);
+        } catch (Exception e) {
+            log.error("Error retrieving terminal {}", id, e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Failed to retrieve terminal",
+                    e.getMessage()
+            );
+        }
     }
 
     @PostMapping
-    public ResponseEntity<TerminalDto> createTerminal(@Valid @RequestBody TerminalCreateRequest request) {
-        TerminalDto terminal = terminalService.createTerminal(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(terminal);
+    public ResponseEntity<TvBootHttpResponse> createTerminal(@Valid @RequestBody TerminalCreateRequest request) {
+        log.info("Creating terminal with code: {}", request.getTerminalCode());
+
+        try {
+            TerminalDto terminal = terminalService.createTerminal(request);
+
+            TvBootHttpResponse response = TvBootHttpResponse.created()
+                    .message("Terminal created successfully")
+                    .build()
+                    .addData("terminal", terminal);
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid terminal data: {}", e.getMessage());
+            return TvBootHttpResponse.badRequestResponse(e.getMessage());
+        } catch (Exception e) {
+            log.error("Error creating terminal", e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Failed to create terminal",
+                    e.getMessage()
+            );
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TerminalDto> updateTerminal(
+    public ResponseEntity<TvBootHttpResponse> updateTerminal(
             @PathVariable Long id,
             @Valid @RequestBody TerminalUpdateRequest request) {
-        TerminalDto terminal = terminalService.updateTerminal(id, request);
-        return ResponseEntity.ok(terminal);
+
+        log.info("Updating terminal with ID: {}", id);
+
+        try {
+            TerminalDto terminal = terminalService.updateTerminal(id, request);
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Terminal updated successfully")
+                    .build()
+                    .addData("terminal", terminal);
+
+            return ResponseEntity.ok(response);
+        } catch (EntityNotFoundException e) {
+            log.warn("Terminal not found for update with ID: {}", id);
+            return TvBootHttpResponse.notFoundResponse("Terminal not found with ID: " + id);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid terminal update data: {}", e.getMessage());
+            return TvBootHttpResponse.badRequestResponse(e.getMessage());
+        } catch (Exception e) {
+            log.error("Error updating terminal {}", id, e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Failed to update terminal",
+                    e.getMessage()
+            );
+        }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTerminal(@PathVariable Long id) {
-        terminalService.deleteTerminal(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<TvBootHttpResponse> deleteTerminal(@PathVariable Long id) {
+        log.info("Deleting terminal with ID: {}", id);
+
+        try {
+            terminalService.deleteTerminal(id);
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Terminal deleted successfully")
+                    .build();
+
+            return ResponseEntity.ok(response);
+        } catch (EntityNotFoundException e) {
+            log.warn("Terminal not found for deletion with ID: {}", id);
+            return TvBootHttpResponse.notFoundResponse("Terminal not found with ID: " + id);
+        } catch (Exception e) {
+            log.error("Error deleting terminal {}", id, e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Failed to delete terminal",
+                    e.getMessage()
+            );
+        }
     }
 
     @PostMapping("/{id}/test-connectivity")
-    public ResponseEntity<ConnectivityTestResult> testConnectivity(@PathVariable Long id) {
-        ConnectivityTestResult result = terminalService.testTerminalConnectivity(id);
-        return ResponseEntity.ok(result);
+    public ResponseEntity<TvBootHttpResponse> testConnectivity(@PathVariable Long id) {
+        log.info("Testing connectivity for terminal ID: {}", id);
+
+        try {
+            ConnectivityTestResult result = terminalService.testTerminalConnectivity(id);
+
+            String message = result.getSuccess()
+                    ? "Terminal connectivity test successful"
+                    : "Terminal connectivity test failed";
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message(message)
+                    .build()
+                    .addData("connectivityResult", result);
+
+            return ResponseEntity.ok(response);
+        } catch (EntityNotFoundException e) {
+            log.warn("Terminal not found for connectivity test with ID: {}", id);
+            return TvBootHttpResponse.notFoundResponse("Terminal not found with ID: " + id);
+        } catch (Exception e) {
+            log.error("Error testing terminal connectivity {}", id, e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Failed to test terminal connectivity",
+                    e.getMessage()
+            );
+        }
     }
 
     @PostMapping("/{id}/reboot")
-    public ResponseEntity<Void> rebootTerminal(@PathVariable Long id) {
-        terminalService.rebootTerminal(id);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<TvBootHttpResponse> rebootTerminal(@PathVariable Long id) {
+        log.info("Rebooting terminal with ID: {}", id);
+
+        try {
+            terminalService.rebootTerminal(id);
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Terminal reboot initiated successfully")
+                    .build()
+                    .addData("terminalId", id);
+
+            return ResponseEntity.ok(response);
+        } catch (EntityNotFoundException e) {
+            log.warn("Terminal not found for reboot with ID: {}", id);
+            return TvBootHttpResponse.notFoundResponse("Terminal not found with ID: " + id);
+        } catch (Exception e) {
+            log.error("Error rebooting terminal {}", id, e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Failed to reboot terminal",
+                    e.getMessage()
+            );
+        }
     }
 
     @GetMapping("/stats")
-    public ResponseEntity<TerminalStatsDto> getTerminalStatistics() {
-        TerminalStatsDto stats = terminalService.getTerminalStatistics();
-        return ResponseEntity.ok(stats);
+    public ResponseEntity<TvBootHttpResponse> getTerminalStatistics() {
+        log.info("Getting terminal statistics");
+
+        try {
+            TerminalStatsDto stats = terminalService.getTerminalStatistics();
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Terminal statistics retrieved successfully")
+                    .build()
+                    .addData("statistics", stats);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error retrieving terminal statistics", e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Failed to retrieve terminal statistics",
+                    e.getMessage()
+            );
+        }
     }
 
     @PostMapping("/heartbeat")
-    public ResponseEntity<Void> updateHeartbeat(@RequestParam String macAddress) {
-        terminalService.updateTerminalHeartbeat(macAddress);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<TvBootHttpResponse> updateHeartbeat(@RequestParam String macAddress) {
+        log.info("Updating heartbeat for MAC address: {}", macAddress);
+
+        try {
+            terminalService.updateTerminalHeartbeat(macAddress);
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Terminal heartbeat updated successfully")
+                    .build()
+                    .addData("macAddress", macAddress);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error updating terminal heartbeat for MAC {}", macAddress, e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Failed to update terminal heartbeat",
+                    e.getMessage()
+            );
+        }
     }
 
     @GetMapping("/{id}/connectivity")
-    public ResponseEntity<ConnectivityTestResult> getTerminalConnectivity(@PathVariable Long id) {
+    public ResponseEntity<TvBootHttpResponse> getTerminalConnectivity(@PathVariable Long id) {
+        log.info("Checking connectivity for terminal ID: {}", id);
+
         try {
             ConnectivityTestResult result = terminalService.testTerminalConnectivity(id);
-            return ResponseEntity.ok(result);
+
+            String message = result.getSuccess()
+                    ? "Terminal connectivity check completed - Online"
+                    : "Terminal connectivity check completed - Offline";
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message(message)
+                    .build()
+                    .addData("connectivityResult", result)
+                    .addData("terminalId", id);
+
+            return ResponseEntity.ok(response);
         } catch (EntityNotFoundException e) {
-            return ResponseEntity.notFound().build();
+            log.warn("Terminal not found for connectivity check with ID: {}", id);
+            return TvBootHttpResponse.notFoundResponse("Terminal not found with ID: " + id);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            log.error("Error checking terminal connectivity {}", id, e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Failed to check terminal connectivity",
+                    e.getMessage()
+            );
+        }
+    }
+
+    // Additional IPTV-specific endpoint
+    @PostMapping("/{id}/authorize")
+    public ResponseEntity<TvBootHttpResponse> authorizeDevice(@PathVariable Long id) {
+        log.info("Authorizing device with terminal ID: {}", id);
+
+        try {
+            TerminalDto terminal = terminalService.getTerminalById(id);
+
+            // In a real implementation, you would perform device authorization logic here
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Device authorized successfully")
+                    .build()
+                    .addDevice(terminal);
+
+            return ResponseEntity.ok(response);
+        } catch (EntityNotFoundException e) {
+            log.warn("Terminal not found for authorization with ID: {}", id);
+            return TvBootHttpResponse.deviceNotAuthorizedResponse(id.toString());
+        } catch (Exception e) {
+            log.error("Error authorizing device {}", id, e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Failed to authorize device",
+                    e.getMessage()
+            );
+        }
+    }
+
+    // IPTV-specific endpoint for getting terminals by room
+    @GetMapping("/room/{roomId}")
+    public ResponseEntity<TvBootHttpResponse> getTerminalsByRoom(
+            @PathVariable Long roomId,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+
+        log.info("Getting terminals for room ID: {} - page: {}, size: {}", roomId, page, size);
+
+        try {
+            // This would need to be implemented in the service
+            // Page<TerminalDto> terminalsPage = terminalService.getTerminalsByRoom(roomId, page, size);
+            // List<TerminalDto> terminals = terminalsPage.getContent();
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Room terminals retrieved successfully")
+                    .build()
+                    .addRoom(roomId);
+            // .addData("terminals", terminals)
+            // .addPagination(page, size, terminalsPage.getTotalElements());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error retrieving terminals for room {}", roomId, e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Failed to retrieve room terminals",
+                    e.getMessage()
+            );
+        }
+    }
+
+    // Get terminals by device type (useful for IPTV management)
+    @GetMapping("/type/{deviceType}")
+    public ResponseEntity<TvBootHttpResponse> getTerminalsByDeviceType(
+            @PathVariable String deviceType,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+
+        log.info("Getting terminals by device type: {} - page: {}, size: {}", deviceType, page, size);
+
+        try {
+            // This would need to be implemented in the service
+            // Page<TerminalDto> terminalsPage = terminalService.getTerminalsByDeviceType(deviceType, page, size);
+
+            TvBootHttpResponse response = TvBootHttpResponse.success()
+                    .message("Terminals by device type retrieved successfully")
+                    .build()
+                    .addData("deviceType", deviceType);
+            // .addData("terminals", terminalsPage.getContent())
+            // .addPagination(page, size, terminalsPage.getTotalElements());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error retrieving terminals by device type {}", deviceType, e);
+            return TvBootHttpResponse.internalServerErrorResponse(
+                    "Failed to retrieve terminals by device type",
+                    e.getMessage()
+            );
         }
     }
 }

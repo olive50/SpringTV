@@ -47,9 +47,7 @@ public class ChannelPackage {
     )
     private List<TvChannel> channels = new ArrayList<>();
 
-    @OneToMany(mappedBy = "channelPackage", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore
-    private List<Room> rooms = new ArrayList<>();
+
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;

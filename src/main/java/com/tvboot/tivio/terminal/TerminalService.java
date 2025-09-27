@@ -1,5 +1,8 @@
 package com.tvboot.tivio.terminal;
 
+import com.tvboot.tivio.common.enumeration.DeviceType;
+import com.tvboot.tivio.common.enumeration.TerminalStatus;
+import com.tvboot.tivio.common.exception.ResourceNotFoundException;
 import com.tvboot.tivio.room.Room;
 import com.tvboot.tivio.room.RoomRepository;
 import com.tvboot.tivio.terminal.dto.*;
@@ -60,13 +63,13 @@ public class TerminalService {
     }
 
     public TerminalDto createTerminal(TerminalCreateRequest request) {
-        log.info("Creating new terminal: {}", request.getTerminalId());
+        log.info("Creating new terminal: {}", request.getTerminalCode());
 
         // Validate uniqueness
         validateTerminalUniqueness(request);
 
         Terminal terminal = Terminal.builder()
-                .terminalId(request.getTerminalId())
+                .terminalCode(request.getTerminalCode())
                 .deviceType(request.getDeviceType())
                 .brand(request.getBrand())
                 .model(request.getModel())
@@ -92,7 +95,7 @@ public class TerminalService {
         // Test initial connectivity
         testConnectivityAsync(savedTerminal);
 
-        log.info("Terminal created successfully: {}", savedTerminal.getTerminalId());
+        log.info("Terminal created successfully: {}", savedTerminal.getTerminalCode());
         return terminalMapper.toDto(savedTerminal);
     }
 
@@ -103,9 +106,9 @@ public class TerminalService {
                 .orElseThrow(() -> new EntityNotFoundException("Terminal not found with ID: " + id));
 
         // Update fields if provided
-        if (request.getTerminalId() != null) {
-            validateTerminalIdUniqueness(request.getTerminalId(), id);
-            terminal.setTerminalId(request.getTerminalId());
+        if (request.getTerminalCode() != null) {
+            validateTerminalIdUniqueness(request.getTerminalCode(), id);
+            terminal.setTerminalCode(request.getTerminalCode());
         }
 
         if (request.getDeviceType() != null) {
@@ -162,7 +165,7 @@ public class TerminalService {
             testConnectivityAsync(savedTerminal);
         }
 
-        log.info("Terminal updated successfully: {}", savedTerminal.getTerminalId());
+        log.info("Terminal updated successfully: {}", savedTerminal.getTerminalCode());
         return terminalMapper.toDto(savedTerminal);
     }
 
@@ -173,26 +176,25 @@ public class TerminalService {
                 .orElseThrow(() -> new EntityNotFoundException("Terminal not found with ID: " + id));
 
         terminalRepository.delete(terminal);
-        log.info("Terminal deleted successfully: {}", terminal.getTerminalId());
+        log.info("Terminal deleted successfully: {}", terminal.getTerminalCode());
     }
 
     public ConnectivityTestResult testTerminalConnectivity(Long id) {
         Terminal terminal = terminalRepository.findById(id)
-                .orElseThrow(() -> new TerminalNotFoundException("Terminal not found with ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Terminal not found with ID: " + id));
 
         return testConnectivity(terminal);
     }
 
     public ConnectivityTestResult testConnectivity(Terminal terminal) {
         try {
-            log.debug("Testing connectivity for terminal: {}", terminal.getTerminalId());
+            log.debug("Testing connectivity for terminal: {}", terminal.getTerminalCode());
 
             ConnectivityTestResult result = connectivityService.pingHost(terminal.getIpAddress());
 
             // Update terminal status based on result
             terminal.setIsOnline(result.getSuccess());
-            terminal.setLastPingTime(LocalDateTime.now());
-            terminal.setResponseTime(result.getResponseTime());
+
 
             if (result.getSuccess()) {
                 terminal.setLastSeen(LocalDateTime.now());
@@ -209,7 +211,7 @@ public class TerminalService {
             return result;
 
         } catch (Exception e) {
-            log.error("Error testing connectivity for terminal {}: {}", terminal.getTerminalId(), e.getMessage());
+            log.error("Error testing connectivity for terminal {}: {}", terminal.getTerminalCode(), e.getMessage());
             return ConnectivityTestResult.builder()
                     .success(false)
                     .message("Connectivity test failed: " + e.getMessage())
@@ -245,7 +247,7 @@ public class TerminalService {
         Map<String, Long> statusCounts = Arrays.stream(TerminalStatus.values())
                 .collect(Collectors.toMap(
                         Enum::name,
-                        status -> terminalRepository.countByStatus(status)
+                        terminalRepository::countByStatus
                 ));
 
         Map<String, Long> deviceTypeCounts = terminalRepository.countByDeviceType()
@@ -272,8 +274,6 @@ public class TerminalService {
                 .byDeviceType(deviceTypeCounts)
                 .byLocation(locationCounts)
                 .averageUptime(terminalRepository.getAverageUptime())
-                .averageResponseTime(terminalRepository.getAverageResponseTime() != null ?
-                        terminalRepository.getAverageResponseTime().intValue() : null)
                 .build();
     }
 
@@ -299,14 +299,14 @@ public class TerminalService {
                 terminal.setStatus(TerminalStatus.OFFLINE);
                 terminal.setIsOnline(false);
                 terminalRepository.save(terminal);
-                log.warn("Terminal {} marked as offline due to inactivity", terminal.getTerminalId());
+                log.warn("Terminal {} marked as offline due to inactivity", terminal.getTerminalCode());
             }
         }
     }
 
     private void validateTerminalUniqueness(TerminalCreateRequest request) {
-        if (terminalRepository.existsByTerminalId(request.getTerminalId())) {
-            throw new IllegalArgumentException("Terminal ID already exists: " + request.getTerminalId());
+        if (terminalRepository.existsByTerminalCode(request.getTerminalCode())) {
+            throw new IllegalArgumentException("Terminal ID already exists: " + request.getTerminalCode());
         }
 
         if (terminalRepository.existsByMacAddress(request.getMacAddress().toUpperCase())) {
@@ -318,11 +318,11 @@ public class TerminalService {
         }
     }
 
-    private void validateTerminalIdUniqueness(String terminalId, Long excludeId) {
-        terminalRepository.findByTerminalId(terminalId)
+    private void validateTerminalIdUniqueness(String terminalCode, Long excludeId) {
+        terminalRepository.findByTerminalCode(terminalCode)
                 .ifPresent(existing -> {
                     if (!existing.getId().equals(excludeId)) {
-                        throw new IllegalArgumentException("Terminal ID already exists: " + terminalId);
+                        throw new IllegalArgumentException("Terminal ID already exists: " + terminalCode);
                     }
                 });
     }
@@ -349,7 +349,7 @@ public class TerminalService {
             if (criteria.getSearch() != null && !criteria.getSearch().trim().isEmpty()) {
                 String searchTerm = "%" + criteria.getSearch().toLowerCase() + "%";
                 Predicate searchPredicate = criteriaBuilder.or(
-                        criteriaBuilder.like(criteriaBuilder.lower(root.get("terminalId")), searchTerm),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("terminalCode")), searchTerm),
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("brand")), searchTerm),
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("model")), searchTerm),
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("location")), searchTerm),

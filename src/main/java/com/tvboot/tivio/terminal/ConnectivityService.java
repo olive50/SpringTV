@@ -25,12 +25,12 @@ public class ConnectivityService {
 
         try (Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress(ipAddress, PORT), TIMEOUT_MS);
-            long responseTime = System.currentTimeMillis() - startTime;
+
 
             return ConnectivityTestResult.builder()
                     .success(true)
                     .message("Host is reachable")
-                    .responseTime((int) responseTime)
+
                     .timestamp(LocalDateTime.now())
                     .details(Map.of(
                             "method", "TCP_CONNECT",
@@ -55,7 +55,7 @@ public class ConnectivityService {
                 return ConnectivityTestResult.builder()
                         .success(true)
                         .message("Host is reachable via ICMP")
-                        .responseTime((int) responseTime)
+
                         .timestamp(LocalDateTime.now())
                         .details(Map.of(
                                 "method", "ICMP_PING",
@@ -66,7 +66,7 @@ public class ConnectivityService {
                 return ConnectivityTestResult.builder()
                         .success(false)
                         .message("Host is not reachable")
-                        .responseTime((int) responseTime)
+
                         .timestamp(LocalDateTime.now())
                         .errorCode("HOST_UNREACHABLE")
                         .details(Map.of(
@@ -83,7 +83,7 @@ public class ConnectivityService {
             return ConnectivityTestResult.builder()
                     .success(false)
                     .message("Connectivity test failed: " + e.getMessage())
-                    .responseTime((int) responseTime)
+
                     .timestamp(LocalDateTime.now())
                     .errorCode("PING_FAILED")
                     .details(Map.of(
@@ -121,7 +121,7 @@ public class ConnectivityService {
                 .message(anyServiceReachable ?
                         "Terminal services are accessible" :
                         "No terminal services are accessible")
-                .responseTime((int) responseTime)
+
                 .timestamp(LocalDateTime.now())
                 .details(Map.of(
                         "method", "SERVICE_TEST",

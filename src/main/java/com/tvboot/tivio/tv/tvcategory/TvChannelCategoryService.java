@@ -39,8 +39,6 @@ public class TvChannelCategoryService {
         }
 
         category.setName(categoryDetails.getName());
-        category.setDescription(categoryDetails.getDescription());
-        category.setIconUrl(categoryDetails.getIconUrl());
 
         return categoryRepository.save(category);
     }

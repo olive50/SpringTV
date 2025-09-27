@@ -135,8 +135,7 @@ SELECT
     c.name as category_name,
     l.name as language_name,
     COUNT(*) as channel_count,
-    SUM(CASE WHEN tc.is_active = TRUE THEN 1 ELSE 0 END) as active_channels,
-    SUM(CASE WHEN tc.is_hd = TRUE THEN 1 ELSE 0 END) as hd_channels
+    SUM(CASE WHEN tc.is_active = TRUE THEN 1 ELSE 0 END) as active_channels
 FROM tv_channels tc
          LEFT JOIN tv_channel_categories c ON tc.category_id = c.id
          LEFT JOIN languages l ON tc.language_id = l.id

@@ -71,10 +71,6 @@ public class Room {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @ElementCollection
-    @CollectionTable(name = "room_amenities", joinColumns = @JoinColumn(name = "room_id"))
-    @Column(name = "amenity")
-    private List<String> amenities = new ArrayList<>();
 
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
@@ -84,9 +80,7 @@ public class Room {
     @JsonIgnore
     private List<Guest> guests = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "channel_package_id")
-    private ChannelPackage channelPackage;
+
 
     @CreatedDate
     @Column(name = "created_at", updatable = false)

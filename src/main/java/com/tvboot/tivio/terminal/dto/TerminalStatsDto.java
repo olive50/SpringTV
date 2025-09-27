@@ -21,5 +21,5 @@ public class TerminalStatsDto {
     private Map<String, Long> byDeviceType;
     private Map<String, Long> byLocation;
     private Double averageUptime;
-    private Integer averageResponseTime;
+
 }

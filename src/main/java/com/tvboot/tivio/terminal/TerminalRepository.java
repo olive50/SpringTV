@@ -1,5 +1,7 @@
 package com.tvboot.tivio.terminal;
 
+import com.tvboot.tivio.common.enumeration.DeviceType;
+import com.tvboot.tivio.common.enumeration.TerminalStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -14,11 +16,11 @@ import java.util.Optional;
 @Repository
 public interface TerminalRepository extends JpaRepository<Terminal, Long>, JpaSpecificationExecutor<Terminal> {
 
-    Optional<Terminal> findByTerminalId(String terminalId);
+    Optional<Terminal> findByTerminalCode(String terminalCode);
     Optional<Terminal> findByMacAddress(String macAddress);
     Optional<Terminal> findByIpAddress(String ipAddress);
 
-    boolean existsByTerminalId(String terminalId);
+    boolean existsByTerminalCode(String terminalCode);
     boolean existsByMacAddress(String macAddress);
     boolean existsByIpAddressAndIdNot(String ipAddress, Long id);
 
@@ -42,6 +44,4 @@ public interface TerminalRepository extends JpaRepository<Terminal, Long>, JpaSp
     @Query("SELECT AVG(t.uptime) FROM Terminal t WHERE t.uptime IS NOT NULL")
     Double getAverageUptime();
 
-    @Query("SELECT AVG(t.responseTime) FROM Terminal t WHERE t.responseTime IS NOT NULL")
-    Double getAverageResponseTime();
-}
+   }

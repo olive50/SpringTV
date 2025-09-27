@@ -7,22 +7,26 @@ import lombok.*;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class TvChannelDTO {
+public class TvChannelResponseDTO {
     private Long id;
     private int channelNumber;
+    private int sortOrder;
     private String name;
     private String description;
     private String ip;
     private int port;
     private String streamUrl;
-    private String logoPath;
+//    private String logoPath;
+    private String logoUrl;
+
     /**
      * URL complète vers le logo, générée à l'exécution
      * Ex: "http://192.168.1.100:8080/api/files/image/logos/b39e29ad-107f-4acb-9fb7-7b61ec4444ac.png"
      */
-    private String logoUrl;
+
 
     private boolean active;
+    private boolean available;
     private CategoryDTO category;
     private TvLanguageDTO language;
 
@@ -34,8 +38,7 @@ public class TvChannelDTO {
     public static class CategoryDTO {
         private Long id;
         private String name;
-        private String description;
-        private String iconUrl;
+
     }
 
     @Getter
@@ -46,6 +49,6 @@ public class TvChannelDTO {
     public static class TvLanguageDTO {
         private Long id;
         private String name;
-        private String code;
+        private String nativeName;
     }
 }

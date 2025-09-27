@@ -1,6 +1,9 @@
 package com.tvboot.tivio.guest;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.tvboot.tivio.common.enumeration.Gender;
+import com.tvboot.tivio.common.enumeration.LoyaltyLevel;
+import com.tvboot.tivio.language.Language;
 import com.tvboot.tivio.room.Room;
 import jakarta.persistence.*;
 import lombok.*;
@@ -12,7 +15,7 @@ import java.util.List;
 
 @Getter
 @Setter
-@Builder
+@Builder(toBuilder = true)
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
@@ -23,8 +26,8 @@ public class Guest {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "guest_id", unique = true, nullable = false)
-    private String guestId; // Hotel-specific guest ID
+    @Column(name = "pms_guest_id", unique = true, nullable = false)
+    private String pmsGuestId; // Hotel-specific guest ID
 
     @Column(name = "first_name", nullable = false)
     private String firstName;
@@ -41,11 +44,9 @@ public class Guest {
     @Column(name = "nationality")
     private String nationality;
 
-    @Column(name = "passport_number")
-    private String passportNumber;
-
-    @Column(name = "id_card_number")
-    private String idCardNumber;
+    @ManyToOne(fetch = FetchType.LAZY) // Use LAZY fetching for better performance
+    @JoinColumn(name = "language_id")
+    private Language language;
 
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
@@ -61,22 +62,12 @@ public class Guest {
     @Enumerated(EnumType.STRING)
     private LoyaltyLevel loyaltyLevel;
 
-    @Column(name = "preferred_language")
-    private String preferredLanguage;
 
-    @Column(name = "special_requests", columnDefinition = "TEXT")
-    private String specialRequests;
 
-    @Column(name = "notes", columnDefinition = "TEXT")
-    private String notes;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "current_room_id")
     private Room room;
-
-    @OneToMany(mappedBy = "guest", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore
-    private List<Reservation> reservations = new ArrayList<>();
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -95,17 +86,6 @@ public class Guest {
         updatedAt = LocalDateTime.now();
     }
 
-    public enum Gender {
-        MALE, FEMALE, OTHER
-    }
-    /*
-     `date_checkin` datetime NOT NULL default '0000-00-00 00:00:00',
-            `date_checkout` datetime NOT NULL default '0000-00-00 00:00:00',
-            `ID_langue` int(11) NOT NULL default '0',
-            `f_tv_rights` tinytext NOT NULL,
-            `f_departure_date` datetime NOT NULL default '0000-00-00 00:00:00',*/
 
-    public enum LoyaltyLevel {
-        BRONZE, SILVER, GOLD, PLATINUM, DIAMOND
-    }
+
 }

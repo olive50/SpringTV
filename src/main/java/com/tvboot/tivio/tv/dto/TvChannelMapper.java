@@ -21,7 +21,7 @@ public interface TvChannelMapper {
     TvChannel toEntity(TvChannelCreateDTO dto);
 
     @Mapping(target = "logoUrl", expression = "java(generateLogoUrl(entity))")
-    TvChannelDTO toDTO(TvChannel entity);
+    TvChannelResponseDTO toDTO(TvChannel entity);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)

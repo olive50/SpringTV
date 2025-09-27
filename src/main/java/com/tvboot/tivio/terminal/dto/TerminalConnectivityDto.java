@@ -11,11 +11,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TerminalConnectivityDto {
-    private String terminalId;
+    private String terminalCode;
     private Boolean isOnline;
-    private Integer responseTime;
     private Double uptime;
-    private LocalDateTime lastPingTime;
     private LocalDateTime lastSeen;
     private String ipAddress;
     private String macAddress;

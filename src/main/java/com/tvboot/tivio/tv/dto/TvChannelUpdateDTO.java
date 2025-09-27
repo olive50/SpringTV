@@ -11,6 +11,8 @@ import lombok.*;
 public class TvChannelUpdateDTO {
     @Positive(message = "Channel number must be positive")
     private Integer channelNumber;
+    @Positive(message = "Sort Order must be positive")
+    private Integer sortOrder;
 
     @Size(min = 2, max = 100, message = "Channel name must be between 2 and 100 characters")
     private String name;
@@ -26,9 +28,9 @@ public class TvChannelUpdateDTO {
     @Max(value = 65535, message = "Port must be less than 65536")
     private Integer port;
 
-    private String logoUrl;
     private Long categoryId;
     private Long languageId;
     private String streamUrl;
-    private boolean active = true;
+    private Boolean active;
+    private Boolean available;
 }

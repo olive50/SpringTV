@@ -1,7 +1,7 @@
 package com.tvboot.tivio.terminal.dto;
 
-import com.tvboot.tivio.terminal.DeviceType;
-import com.tvboot.tivio.terminal.TerminalStatus;
+import com.tvboot.tivio.common.enumeration.DeviceType;
+import com.tvboot.tivio.common.enumeration.TerminalStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TerminalUpdateRequest {
-    private String terminalId;
+    private String terminalCode;
     private DeviceType deviceType;
     private String brand;
     private String model;

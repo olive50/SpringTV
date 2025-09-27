@@ -32,7 +32,7 @@ public class RoomRequest {
     private String building;
 
     @Positive(message = "Max occupancy must be positive")
-    private Integer maxOccupancy;
+    private Integer capacity;
 
     @Positive(message = "Price must be positive")
     private BigDecimal pricePerNight;
@@ -42,7 +42,4 @@ public class RoomRequest {
 
     private String description;
 
-    private List<String> amenities;
-
-    private Long channelPackageId;
 }

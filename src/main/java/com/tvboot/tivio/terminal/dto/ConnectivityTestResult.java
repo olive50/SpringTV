@@ -15,7 +15,6 @@ import java.util.Map;
 public class ConnectivityTestResult {
     private Boolean success;
     private String message;
-    private Integer responseTime;
     private LocalDateTime timestamp;
     private String errorCode;
     private Map<String, Object> details;

@@ -1,12 +1,12 @@
 package com.tvboot.tivio.common.config;
 
+import com.tvboot.tivio.tv.TvChannelRepository;
 import com.tvboot.tivio.tv.TvChannel;
 import com.tvboot.tivio.tv.tvcategory.TvChannelCategory;
 import com.tvboot.tivio.auth.User;
 import com.tvboot.tivio.language.Language;
 import com.tvboot.tivio.language.LanguageRepository;
 import com.tvboot.tivio.tv.tvcategory.TvChannelCategoryRepository;
-import com.tvboot.tivio.tv.TvChannelRepository;
 import com.tvboot.tivio.auth.UserRepository;
 import com.tvboot.tivio.room.Room;
 import com.tvboot.tivio.room.RoomRepository;
@@ -40,7 +40,7 @@ public class DatabaseInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final LanguageRepository languageRepository;
     private final TvChannelCategoryRepository categoryRepository;
-    private final TvChannelRepository channelRepository;
+    private final TvChannelRepository tvChannelRepository;
     private final RoomRepository roomRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -431,28 +431,26 @@ public class DatabaseInitializer implements CommandLineRunner {
                 List<TvChannelCategory> categories = List.of(
                         TvChannelCategory.builder()
                                 .name("News")
-                                .description("News and current affairs channels")
-                                .iconUrl("fas fa-newspaper")
+
+
                                 .build(),
                         TvChannelCategory.builder()
                                 .name("Sports")
-                                .description("Sports and athletics channels")
-                                .iconUrl("fas fa-football-ball")
+
+
                                 .build(),
                         TvChannelCategory.builder()
                                 .name("Entertainment")
-                                .description("Movies and entertainment channels")
-                                .iconUrl("fas fa-film")
+
+
                                 .build(),
                         TvChannelCategory.builder()
                                 .name("Kids")
-                                .description("Children and family channels")
-                                .iconUrl("fas fa-child")
+
                                 .build(),
                         TvChannelCategory.builder()
                                 .name("Documentary")
-                                .description("Documentary and educational channels")
-                                .iconUrl("fas fa-graduation-cap")
+
                                 .build()
                 );
 
@@ -496,7 +494,7 @@ public class DatabaseInitializer implements CommandLineRunner {
         log.info("Initializing sample channels in separate transaction...");
 
         try {
-            if (channelRepository.count() == 0) {
+            if (tvChannelRepository.count() == 0) {
                 log.info("Creating sample TV channels...");
 
                 Language english = languageRepository.findByIso6391("en")
@@ -540,10 +538,10 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .build()
                 );
 
-                List<TvChannel> savedChannels = channelRepository.saveAll(channels);
+                List<TvChannel> savedChannels = tvChannelRepository.saveAll(channels);
                 log.info("✅ Created {} sample channels", savedChannels.size());
             } else {
-                log.info("TV channels already exist ({})", channelRepository.count());
+                log.info("TV channels already exist ({})", tvChannelRepository.count());
             }
         } catch (Exception e) {
             log.error("Error initializing sample channels: {}", e.getMessage(), e);
@@ -577,7 +575,7 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .pricePerNight(new BigDecimal("89.99"))
                                 .status(Room.RoomStatus.AVAILABLE)
                                 .description("Standard room with city view")
-                                .amenities(List.of("WiFi", "TV", "Air Conditioning", "Mini Bar"))
+
                                 .build(),
 
                         Room.builder()
@@ -589,7 +587,6 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .pricePerNight(new BigDecimal("129.99"))
                                 .status(Room.RoomStatus.AVAILABLE)
                                 .description("Deluxe room with balcony")
-                                .amenities(List.of("WiFi", "Smart TV", "Air Conditioning", "Mini Bar", "Balcony"))
                                 .build(),
 
                         Room.builder()
@@ -601,7 +598,6 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .pricePerNight(new BigDecimal("199.99"))
                                 .status(Room.RoomStatus.AVAILABLE)
                                 .description("Executive suite with living room")
-                                .amenities(List.of("WiFi", "Smart TV", "Air Conditioning", "Mini Bar", "Living Room"))
                                 .build()
                 );
 

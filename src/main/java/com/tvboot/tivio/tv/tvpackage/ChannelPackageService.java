@@ -18,7 +18,7 @@ import java.util.Optional;
 public class ChannelPackageService {
 
     private final ChannelPackageRepository packageRepository;
-    private final TvChannelRepository channelRepository;
+    private final TvChannelRepository tvChannelRepository;
 
     public List<ChannelPackage> getAllPackages() {
         return packageRepository.findAll();
@@ -87,7 +87,7 @@ public class ChannelPackageService {
         ChannelPackage channelPackage = packageRepository.findById(packageId)
                 .orElseThrow(() -> new ResourceNotFoundException("Package not found with ID: " + packageId));
 
-        TvChannel channel = channelRepository.findById(channelId)
+        TvChannel channel = tvChannelRepository.findById(channelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Channel not found with ID: " + channelId));
 
         if (!channelPackage.getChannels().contains(channel)) {
@@ -104,7 +104,7 @@ public class ChannelPackageService {
         ChannelPackage channelPackage = packageRepository.findById(packageId)
                 .orElseThrow(() -> new ResourceNotFoundException("Package not found with ID: " + packageId));
 
-        TvChannel channel = channelRepository.findById(channelId)
+        TvChannel channel = tvChannelRepository.findById(channelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Channel not found with ID: " + channelId));
 
         channelPackage.getChannels().remove(channel);

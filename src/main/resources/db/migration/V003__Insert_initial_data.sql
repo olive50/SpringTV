@@ -65,17 +65,17 @@ INSERT INTO language_supported_platforms (language_id, platform) VALUES
 -- INSERT DEFAULT TV CHANNEL CATEGORIES
 -- ==========================================
 
-INSERT INTO tv_channel_categories (name, description, icon_url) VALUES
-                                                                    ('News', 'News and current affairs channels', 'fas fa-newspaper'),
-                                                                    ('Sports', 'Sports and athletics channels', 'fas fa-football-ball'),
-                                                                    ('Entertainment', 'Movies and entertainment channels', 'fas fa-film'),
-                                                                    ('Kids', 'Children and family channels', 'fas fa-child'),
-                                                                    ('Documentary', 'Documentary and educational channels', 'fas fa-graduation-cap'),
-                                                                    ('Music', 'Music and concerts channels', 'fas fa-music'),
-                                                                    ('Lifestyle', 'Lifestyle and cooking channels', 'fas fa-utensils'),
-                                                                    ('Religious', 'Religious and spiritual content', 'fas fa-pray'),
-                                                                    ('International', 'International and foreign language channels', 'fas fa-globe'),
-                                                                    ('Premium', 'Premium subscription channels', 'fas fa-crown');
+INSERT INTO tv_channel_categories (name) VALUES
+                                                                    ('News'),
+                                                                    ('Sports'),
+                                                                    ('Entertainment'),
+                                                                    ('Kids'),
+                                                                    ('Documentary'),
+                                                                    ('Music'),
+                                                                    ('Lifestyle'),
+                                                                    ('Religious'),
+                                                                    ('International'),
+                                                                    ('Premium');
 
 -- ==========================================
 -- INSERT SAMPLE CHANNEL PACKAGES
@@ -107,37 +107,37 @@ SET @music_cat = (SELECT id FROM tv_channel_categories WHERE name = 'Music');
 
 -- Insert sample TV channels
 INSERT INTO tv_channels (
-    channel_number, name, description, ip, port, stream_url, logo_url,
-    category_id, language_id, is_active, is_hd, is_avialable, sort_order
+    channel_number, name, description, ip, port, stream_url, logo_path,
+    category_id, language_id, is_active, is_available, sort_order
 ) VALUES
 -- News Channels
-(101, 'CNN International', 'International news and current affairs', '192.168.1.100', 8001, 'udp://@239.1.1.101:1234', '/logos/cnn.png', @news_cat, @english_id, TRUE, TRUE, TRUE, 1),
-(102, 'BBC World News', 'British Broadcasting Corporation World Service', '192.168.1.101', 8002, 'udp://@239.1.1.102:1234', '/logos/bbc.png', @news_cat, @english_id, TRUE, TRUE, TRUE, 2),
-(103, 'France 24', 'French international news channel', '192.168.1.102', 8003, 'udp://@239.1.1.103:1234', '/logos/france24.png', @news_cat, @french_id, TRUE, TRUE, TRUE, 3),
-(104, 'Al Jazeera English', 'Middle Eastern perspective on global news', '192.168.1.103', 8004, 'udp://@239.1.1.104:1234', '/logos/aljazeera.png', @news_cat, @english_id, TRUE, TRUE, TRUE, 4),
-(105, 'Echorouk News', 'Algerian news channel', '192.168.1.104', 8005, 'udp://@239.1.1.105:1234', '/logos/echorouk.png', @news_cat, @arabic_id, TRUE, FALSE, TRUE, 5),
+(101, 'CNN International', 'International news and current affairs', '192.168.1.100', 8001, 'udp://@239.1.1.101:1234', '/logos/cnn.png', @news_cat, @english_id, TRUE, TRUE, 1),
+(102, 'BBC World News', 'British Broadcasting Corporation World Service', '192.168.1.101', 8002, 'udp://@239.1.1.102:1234', '/logos/bbc.png', @news_cat, @english_id, TRUE, TRUE, 2),
+(103, 'France 24', 'French international news channel', '192.168.1.102', 8003, 'udp://@239.1.1.103:1234', '/logos/france24.png', @news_cat, @french_id, TRUE, TRUE, 3),
+(104, 'Al Jazeera English', 'Middle Eastern perspective on global news', '192.168.1.103', 8004, 'udp://@239.1.1.104:1234', '/logos/aljazeera.png', @news_cat, @english_id, TRUE,  TRUE, 4),
+(105, 'Echorouk News', 'Algerian news channel', '192.168.1.104', 8005, 'udp://@239.1.1.105:1234', '/logos/echorouk.png', @news_cat, @arabic_id, TRUE, TRUE, 5),
 
 -- Sports Channels
-(201, 'ESPN', 'Sports entertainment and programming network', '192.168.1.110', 8011, 'udp://@239.1.2.101:1234', '/logos/espn.png', @sports_cat, @english_id, TRUE, TRUE, TRUE, 10),
-(202, 'Eurosport 1', 'European sports channel', '192.168.1.111', 8012, 'udp://@239.1.2.102:1234', '/logos/eurosport.png', @sports_cat, @english_id, TRUE, TRUE, TRUE, 11),
-(203, 'beIN Sports 1', 'Premium sports channel', '192.168.1.112', 8013, 'udp://@239.1.2.103:1234', '/logos/bein1.png', @sports_cat, @english_id, TRUE, TRUE, TRUE, 12),
-(204, 'Sky Sports', 'UK sports broadcasting', '192.168.1.113', 8014, 'udp://@239.1.2.104:1234', '/logos/skysports.png', @sports_cat, @english_id, TRUE, TRUE, TRUE, 13),
+(201, 'ESPN', 'Sports entertainment and programming network', '192.168.1.110', 8011, 'udp://@239.1.2.101:1234', '/logos/espn.png', @sports_cat, @english_id, TRUE,  TRUE, 10),
+(202, 'Eurosport 1', 'European sports channel', '192.168.1.111', 8012, 'udp://@239.1.2.102:1234', '/logos/eurosport.png', @sports_cat, @english_id, TRUE,  TRUE, 11),
+(203, 'beIN Sports 1', 'Premium sports channel', '192.168.1.112', 8013, 'udp://@239.1.2.103:1234', '/logos/bein1.png', @sports_cat, @english_id, TRUE,  TRUE, 12),
+(204, 'Sky Sports', 'UK sports broadcasting', '192.168.1.113', 8014, 'udp://@239.1.2.104:1234', '/logos/skysports.png', @sports_cat, @english_id, TRUE,  TRUE, 13),
 
 -- Entertainment Channels
-(301, 'HBO', 'Premium entertainment channel', '192.168.1.120', 8021, 'udp://@239.1.3.101:1234', '/logos/hbo.png', @entertainment_cat, @english_id, TRUE, TRUE, TRUE, 20),
-(302, 'Discovery Channel', 'Documentary and reality programming', '192.168.1.121', 8022, 'udp://@239.1.3.102:1234', '/logos/discovery.png', @documentary_cat, @english_id, TRUE, TRUE, TRUE, 21),
-(303, 'National Geographic', 'Science and nature documentaries', '192.168.1.122', 8023, 'udp://@239.1.3.103:1234', '/logos/natgeo.png', @documentary_cat, @english_id, TRUE, TRUE, TRUE, 22),
-(304, 'MTV', 'Music television', '192.168.1.123', 8024, 'udp://@239.1.3.104:1234', '/logos/mtv.png', @music_cat, @english_id, TRUE, FALSE, TRUE, 23),
+(301, 'HBO', 'Premium entertainment channel', '192.168.1.120', 8021, 'udp://@239.1.3.101:1234', '/logos/hbo.png', @entertainment_cat, @english_id, TRUE,  TRUE, 20),
+(302, 'Discovery Channel', 'Documentary and reality programming', '192.168.1.121', 8022, 'udp://@239.1.3.102:1234', '/logos/discovery.png', @documentary_cat, @english_id, TRUE,  TRUE, 21),
+(303, 'National Geographic', 'Science and nature documentaries', '192.168.1.122', 8023, 'udp://@239.1.3.103:1234', '/logos/natgeo.png', @documentary_cat, @english_id, TRUE,  TRUE, 22),
+(304, 'MTV', 'Music television', '192.168.1.123', 8024, 'udp://@239.1.3.104:1234', '/logos/mtv.png', @music_cat, @english_id, TRUE, TRUE, 23),
 
 -- Kids Channels
-(401, 'Cartoon Network', 'Animated series and movies for children', '192.168.1.130', 8031, 'udp://@239.1.4.101:1234', '/logos/cartoon.png', @kids_cat, @english_id, TRUE, FALSE, TRUE, 30),
-(402, 'Disney Channel', 'Family entertainment from Disney', '192.168.1.131', 8032, 'udp://@239.1.4.102:1234', '/logos/disney.png', @kids_cat, @english_id, TRUE, TRUE, TRUE, 31),
-(403, 'Nickelodeon', 'Kids entertainment and educational content', '192.168.1.132', 8033, 'udp://@239.1.4.103:1234', '/logos/nick.png', @kids_cat, @english_id, TRUE, FALSE, TRUE, 32),
+(401, 'Cartoon Network', 'Animated series and movies for children', '192.168.1.130', 8031, 'udp://@239.1.4.101:1234', '/logos/cartoon.png', @kids_cat, @english_id, TRUE,  TRUE, 30),
+(402, 'Disney Channel', 'Family entertainment from Disney', '192.168.1.131', 8032, 'udp://@239.1.4.102:1234', '/logos/disney.png', @kids_cat, @english_id, TRUE,  TRUE, 31),
+(403, 'Nickelodeon', 'Kids entertainment and educational content', '192.168.1.132', 8033, 'udp://@239.1.4.103:1234', '/logos/nick.png', @kids_cat, @english_id, TRUE,  TRUE, 32),
 
 -- French Channels
-(501, 'TF1', 'French general entertainment', '192.168.1.140', 8041, 'udp://@239.1.5.101:1234', '/logos/tf1.png', @entertainment_cat, @french_id, TRUE, TRUE, TRUE, 40),
-(502, 'France 2', 'French public television', '192.168.1.141', 8042, 'udp://@239.1.5.102:1234', '/logos/france2.png', @entertainment_cat, @french_id, TRUE, TRUE, TRUE, 41),
-(503, 'Canal+', 'French premium channel', '192.168.1.142', 8043, 'udp://@239.1.5.103:1234', '/logos/canal.png', @entertainment_cat, @french_id, TRUE, TRUE, TRUE, 42);
+(501, 'TF1', 'French general entertainment', '192.168.1.140', 8041, 'udp://@239.1.5.101:1234', '/logos/tf1.png', @entertainment_cat, @french_id, TRUE,  TRUE, 40),
+(502, 'France 2', 'French public television', '192.168.1.141', 8042, 'udp://@239.1.5.102:1234', '/logos/france2.png', @entertainment_cat, @french_id, TRUE,  TRUE, 41),
+(503, 'Canal+', 'French premium channel', '192.168.1.142', 8043, 'udp://@239.1.5.103:1234', '/logos/canal.png', @entertainment_cat, @french_id, TRUE, TRUE,  42);
 
 -- ==========================================
 -- INSERT SAMPLE ROOMS

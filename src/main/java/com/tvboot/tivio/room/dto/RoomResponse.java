@@ -1,5 +1,6 @@
 package com.tvboot.tivio.room.dto;
 
+import com.tvboot.tivio.guest.Guest;
 import com.tvboot.tivio.tv.tvpackage.ChannelPackage;
 import com.tvboot.tivio.room.Room;
 import com.tvboot.tivio.terminal.Terminal;
@@ -26,13 +27,12 @@ public class RoomResponse {
     private BigDecimal pricePerNight;
     private Room.RoomStatus status;
     private String description;
-    private List<String> amenities;
     private boolean available;
     private String fullRoomIdentifier;
 
-    // Channel package info
-    private ChannelPackage channelPackage;
 
+    // Terminal info
+    private List<Guest> guests;
     // Terminal info
     private List<Terminal> terminals;
 

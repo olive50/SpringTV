@@ -89,4 +89,51 @@ public class FileStorageService {
         int dotIndex = filename.lastIndexOf('.');
         return (dotIndex == -1) ? "" : filename.substring(dotIndex);
     }
+
+    public String storeFileWithCustomName(MultipartFile file, String subDir, String customFilename) {
+        // Validate file
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File is empty");
+        }
+
+        // Validate custom filename
+        if (!StringUtils.hasText(customFilename)) {
+            throw new IllegalArgumentException("Custom filename cannot be empty");
+        }
+
+        try {
+            // Create subdirectory if needed
+            Path targetLocation = this.fileStorageLocation.resolve(subDir);
+            Files.createDirectories(targetLocation);
+
+            // Clean and use custom filename
+            String cleanFilename = StringUtils.cleanPath(customFilename);
+            Path targetFile = targetLocation.resolve(cleanFilename);
+
+            // Copy file to target location
+            Files.copy(file.getInputStream(), targetFile, StandardCopyOption.REPLACE_EXISTING);
+
+            return subDir + "/" + cleanFilename;
+        } catch (IOException ex) {
+            throw new RuntimeException("Could not store file " + customFilename, ex);
+        }
+    }
+
+    public static String generateChannelLogoFilename(String channelName, int channelNumber, String originalFilename) {
+        // Get file extension
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+
+        // Sanitize channel name: remove special characters and convert to lowercase
+        String sanitizedName = channelName
+                .toLowerCase()
+                .replaceAll("[^a-zA-Z0-9\\s]", "") // Remove special chars
+                .replaceAll("\\s+", "-")           // Replace spaces with hyphens
+                .trim();
+
+        // Format: channel-name_number.extension
+        return String.format("%s_%d%s", sanitizedName, channelNumber, extension);
+    }
 }

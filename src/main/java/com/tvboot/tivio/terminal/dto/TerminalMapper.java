@@ -19,11 +19,10 @@ public interface TerminalMapper {
 
     List<TerminalDto> toDtoList(List<Terminal> terminals);
 
-    @Mapping(target = "terminalId", source = "terminalId")
+    @Mapping(target = "terminalCode", source = "terminalCode")
     @Mapping(target = "isOnline", source = "isOnline")
-    @Mapping(target = "responseTime", source = "responseTime")
+
     @Mapping(target = "uptime", source = "uptime")
-    @Mapping(target = "lastPingTime", source = "lastPingTime")
     @Mapping(target = "lastSeen", source = "lastSeen")
     TerminalConnectivityDto toConnectivityDto(Terminal terminal);
 
@@ -34,9 +33,9 @@ public interface TerminalMapper {
     @Mapping(target = "lastSeen", expression = "java(java.time.LocalDateTime.now())")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "responseTime", ignore = true)
+
     @Mapping(target = "uptime", ignore = true)
-    @Mapping(target = "lastPingTime", ignore = true)
+
     @Mapping(target = "isOnline", constant = "false")
     @Mapping(target = "room", source = "roomId", qualifiedByName = "roomIdToRoom")
     Terminal fromCreateRequest(TerminalCreateRequest request);
@@ -57,15 +56,5 @@ public interface TerminalMapper {
         return Room.builder().id(roomId).build();
     }
 
-    @Named("roomToSummaryDto")
-    default RoomSummaryDto roomToSummaryDto(Room room) {
-        if (room == null) {
-            return null;
-        }
-        return RoomSummaryDto.builder()
-                .id(room.getId())
-                .roomName(room.getRoomNumber())
-                .roomCapacity(room.getCapacity())
-                .build();
-    }
+
 }

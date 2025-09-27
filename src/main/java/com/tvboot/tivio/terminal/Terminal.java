@@ -1,5 +1,7 @@
 package com.tvboot.tivio.terminal;
 
+import com.tvboot.tivio.common.enumeration.DeviceType;
+import com.tvboot.tivio.common.enumeration.TerminalStatus;
 import com.tvboot.tivio.room.Room;
 import jakarta.persistence.*;
 import lombok.*;
@@ -21,8 +23,16 @@ public class Terminal {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "terminal_id", unique = true, nullable = false, length = 50)
-    private String terminalId;
+    @Column(name = "terminal_code", unique = true, nullable = false, length = 50)
+    private String terminalCode;
+    @Column(name = "serial_number", length = 50)
+    private String serialNumber;
+
+    @Column(name = "ip_address", nullable = false, length = 15)
+    private String ipAddress;
+
+    @Column(name = "mac_address", unique = true, nullable = false, length = 17)
+    private String macAddress;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "device_type", nullable = false, length = 20)
@@ -34,11 +44,13 @@ public class Terminal {
     @Column(name = "model", nullable = false, length = 50)
     private String model;
 
-    @Column(name = "mac_address", unique = true, nullable = false, length = 17)
-    private String macAddress;
+    @Column(name = "platform", length = 20)
+    private String platform;
 
-    @Column(name = "ip_address", nullable = false, length = 15)
-    private String ipAddress;
+    @Column(name = "firmware_version", length = 20)
+    private String firmwareVersion;
+
+
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -53,12 +65,12 @@ public class Terminal {
 
     @Column(name = "last_seen", nullable = false)
     private LocalDateTime lastSeen = LocalDateTime.now();
+    @Column(name = "uptime", precision = 5)
+    private Double uptime; // percentage
 
-    @Column(name = "firmware_version", length = 20)
-    private String firmwareVersion;
+    @Column(name = "is_online", nullable = false)
+    private Boolean isOnline = false;
 
-    @Column(name = "serial_number", length = 50)
-    private String serialNumber;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -68,16 +80,7 @@ public class Terminal {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Connection monitoring fields
-    @Column(name = "response_time")
-    private Integer responseTime; // in milliseconds
 
-    @Column(name = "uptime", precision = 5)
-    private Double uptime; // percentage
 
-    @Column(name = "last_ping_time")
-    private LocalDateTime lastPingTime;
 
-    @Column(name = "is_online", nullable = false)
-    private Boolean isOnline = false;
 }

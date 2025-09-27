@@ -7,7 +7,6 @@ import com.tvboot.tivio.room.dto.RoomRequest;
 import com.tvboot.tivio.room.dto.RoomResponse;
 import com.tvboot.tivio.room.dto.RoomStatsDTO;
 import com.tvboot.tivio.room.dto.RoomSummary;
-import com.tvboot.tivio.room.exception.RoomAlreadyExistsException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -89,7 +88,7 @@ public class RoomServiceImpl implements RoomService {
         // Check if room number is being changed and if it already exists
         if (!existingRoom.getRoomNumber().equals(roomRequest.getRoomNumber()) &&
                 roomRepository.existsByRoomNumber(roomRequest.getRoomNumber())) {
-            throw new RoomAlreadyExistsException("Room with number " + roomRequest.getRoomNumber() + " already exists");
+            throw new ResourceAlreadyExistsException("Room with number " + roomRequest.getRoomNumber() + " already exists");
         }
 
         roomMapper.updateEntityFromRequest(roomRequest, existingRoom);

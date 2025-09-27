@@ -40,10 +40,10 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     List<Room> searchRooms(@Param("searchTerm") String searchTerm);
 
     // Terminal-related queries
-    @Query("SELECT r FROM Room r JOIN r.terminals t WHERE t.id = :terminalId")
-    Optional<Room> findByTerminalId(@Param("terminalId") Long terminalId);
+    @Query("SELECT r FROM Room r JOIN r.terminals t WHERE t.id = :terminalCode")
+    Optional<Room> findByTerminalId(@Param("terminalCode") Long terminalCode);
 
-    @Query("SELECT r FROM Room r JOIN r.terminals t WHERE t.terminalId = :terminalNumber")
+    @Query("SELECT r FROM Room r JOIN r.terminals t WHERE t.terminalCode = :terminalNumber")
     Optional<Room> findByTerminalNumber(@Param("terminalNumber") String terminalNumber);
 
     @Query("SELECT r FROM Room r WHERE r.id IN (SELECT t.room.id FROM Terminal t WHERE t.status = :status)")
@@ -107,15 +107,8 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 //    long countByOccupancyRange(@Param("minOccupancy") Integer minOccupancy,
 //                               @Param("capacity") Integer capacity);
 
-    // Count with channel package
-    @Query("SELECT COUNT(r) FROM Room r WHERE r.channelPackage IS NOT NULL")
-    long countWithChannelPackage();
 
-    @Query("SELECT COUNT(r) FROM Room r WHERE r.channelPackage IS NULL")
-    int countWithoutChannelPackage();
 
-    @Query("SELECT COUNT(r) FROM Room r WHERE r.channelPackage IS NOT NULL AND r.status = 'AVAILABLE'")
-    int countAvailableWithChannelPackage();
 
     // Count with terminals
     @Query("SELECT COUNT(r) FROM Room r WHERE SIZE(r.terminals) > 0")
