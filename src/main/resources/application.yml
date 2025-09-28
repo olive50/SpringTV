@@ -1,45 +1,50 @@
 # ===================================================================
 # TVBOOT IPTV Platform - Base Configuration
 # ===================================================================
-
 spring:
   application:
     name: tivio-iptv-platform
 
   profiles:
     active: dev
-
-
-  # ==========================================
-  # DATABASE CONFIGURATION
-  # ==========================================
+    # ==========================================
+    # DATABASE CONFIGURATION
+    # ==========================================
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/iptv_platform?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&useUnicode=true&characterEncoding=utf8mb4
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:root}
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/iptv_platform?createDatabaseIfNotExist=false
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
-      connection-timeout: 20000
-      idle-timeout: 300000
-      max-lifetime: 1200000
-
-
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+      pool-name: TvBootHikariPoolPostgres
+      data-source-properties:
+        # PostgreSQL specific optimizations
+        ApplicationName: tvboot-iptv
+        logServerErrorDetail: false
 
   # ==========================================
   # JPA & HIBERNATE CONFIGURATION
   # ==========================================
+
   jpa:
-    database-platform: org.hibernate.dialect.MySQL8Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-        use_sql_comments: true
-
+        jdbc.batch_size: 20
+        order_inserts: true
+        order_updates: true
+        # PostgreSQL specific
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
   # ==========================================
   # FLYWAY CONFIGURATION

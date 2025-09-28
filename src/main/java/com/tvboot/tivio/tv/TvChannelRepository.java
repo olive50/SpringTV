@@ -118,4 +118,19 @@ public interface TvChannelRepository extends JpaRepository<TvChannel, Long> {
     Page<TvChannel> findAllWithFilters(String q, Long categoryId, Long languageId, Boolean isActive, Pageable pageable);
 
     Optional<TvChannel> findBySortOrder(int sortOrder);
+
+    // PostgreSQL full-text search
+    @Query(value = "SELECT * FROM tv_channels WHERE " +
+            "to_tsvector('english', name || ' ' || COALESCE(description, '')) " +
+            "@@ plainto_tsquery('english', ?1)", nativeQuery = true)
+    Page<TvChannel> findByFullTextSearch(String searchTerm, Pageable pageable);
+
+    // JSONB queries
+    @Query(value = "SELECT * FROM tv_channels WHERE " +
+            "metadata @> ?1::jsonb", nativeQuery = true)
+    List<TvChannel> findByMetadata(String jsonCriteria);
+
+    // Network address queries
+    @Query("SELECT c FROM TvChannel c WHERE c.ip = :ip")
+    List<TvChannel> findByIpAddress(@Param("ip") String ip);
 }

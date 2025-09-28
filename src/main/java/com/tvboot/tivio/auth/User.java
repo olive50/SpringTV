@@ -20,6 +20,7 @@ import java.util.List;
 public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
 
     @Column(unique = true, nullable = false)
@@ -39,10 +40,10 @@ public class User implements UserDetails {
     private String lastName;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "role", columnDefinition = "varchar(50)")
     private Role role;
 
-    @Column(name = "is_active")
+    @Column(name = "is_active", columnDefinition = "boolean default true")
     private boolean isActive = true;
 
     @Column(name = "last_login")

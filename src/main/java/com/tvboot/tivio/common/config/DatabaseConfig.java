@@ -42,74 +42,27 @@ public class DatabaseConfig {
     @Bean
     @Primary
     public DataSource dataSource() {
-        log.info("Configuring HikariCP DataSource for MySQL 8...");
-
         HikariConfig config = new HikariConfig();
-
-        // Basic connection settings
         config.setJdbcUrl(jdbcUrl);
         config.setUsername(username);
         config.setPassword(password);
-        config.setDriverClassName(driverClassName);
+        config.setDriverClassName("org.postgresql.Driver");
 
-        // Pool configuration - CRITICAL for stability
+        // PostgreSQL specific optimizations
         config.setMaximumPoolSize(20);
         config.setMinimumIdle(5);
-        config.setConnectionTimeout(30000);    // 30 seconds
-        config.setIdleTimeout(600000);         // 10 minutes
-        config.setMaxLifetime(1800000);        // 30 minutes
-        config.setLeakDetectionThreshold(60000); // 1 minute
+        config.setConnectionTimeout(30000);
+        config.setIdleTimeout(600000);
+        config.setMaxLifetime(1800000);
 
-        // Pool name for monitoring
-        config.setPoolName("TvBootHikariPool");
+        // PostgreSQL specific properties
+        config.addDataSourceProperty("ApplicationName", "tvboot-iptv");
+        config.addDataSourceProperty("logServerErrorDetail", "false");
+        config.addDataSourceProperty("prepareThreshold", "5");
+        config.addDataSourceProperty("binaryTransfer", "true");
 
-        // Connection validation
-        config.setConnectionTestQuery("SELECT 1");
-        config.setValidationTimeout(5000);
-
-        // CRITICAL: MySQL transaction handling fixes
-        config.setAutoCommit(false); // Disable auto-commit for proper transaction management
-//        config.setAutoCommit(true);
-        config.setTransactionIsolation("TRANSACTION_READ_COMMITTED");
-
-        // MySQL 8 specific optimizations
-        config.addDataSourceProperty("cachePrepStmts", "true");
-        config.addDataSourceProperty("prepStmtCacheSize", "250");
-        config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-        config.addDataSourceProperty("useServerPrepStmts", "true");
-        config.addDataSourceProperty("useLocalSessionState", "true");
-        config.addDataSourceProperty("rewriteBatchedStatements", "true");
-        config.addDataSourceProperty("cacheResultSetMetadata", "true");
-        config.addDataSourceProperty("cacheServerConfiguration", "true");
-        config.addDataSourceProperty("elideSetAutoCommits", "true");
-        config.addDataSourceProperty("maintainTimeStats", "false");
-
-        // MySQL 8 connection properties for better compatibility
-        config.addDataSourceProperty("useSSL", "false");
-        config.addDataSourceProperty("allowPublicKeyRetrieval", "true");
-        config.addDataSourceProperty("serverTimezone", "UTC");
-        config.addDataSourceProperty("createDatabaseIfNotExist", "true");
-
-        // Transaction-related MySQL properties
-        config.addDataSourceProperty("autoReconnect", "true");
-        config.addDataSourceProperty("failOverReadOnly", "false");
-        config.addDataSourceProperty("maxReconnects", "3");
-        config.addDataSourceProperty("initialTimeout", "2");
-
-        // MySQL 8 performance optimizations
-        config.addDataSourceProperty("useConfigs", "maxPerformance");
-        config.addDataSourceProperty("useCursorFetch", "true");
-
-        HikariDataSource dataSource = new HikariDataSource(config);
-
-        log.info("HikariCP DataSource configured successfully");
-        log.info("Auto-commit disabled: {}", !config.isAutoCommit());
-        log.info("Maximum pool size: {}", config.getMaximumPoolSize());
-        log.info("Minimum idle connections: {}", config.getMinimumIdle());
-
-        return dataSource;
+        return new HikariDataSource(config);
     }
-
     /**
      * EntityManagerFactory with optimized Hibernate properties for MySQL 8
      */
