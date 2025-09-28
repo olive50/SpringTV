@@ -64,7 +64,7 @@ public interface GuestMapper {
         return GuestResponseDto.LanguageDto.builder()
                 .id(language.getId())
                 .name(language.getName())
-                .code(language.getLocaleCode())
+                .localeCode(language.getLocaleCode())
                 .build();
     }
 

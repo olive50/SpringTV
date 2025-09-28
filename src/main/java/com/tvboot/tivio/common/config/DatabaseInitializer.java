@@ -1,11 +1,11 @@
 package com.tvboot.tivio.common.config;
 
+import com.tvboot.tivio.language.LanguageRepository;
 import com.tvboot.tivio.tv.TvChannelRepository;
 import com.tvboot.tivio.tv.TvChannel;
 import com.tvboot.tivio.tv.tvcategory.TvChannelCategory;
 import com.tvboot.tivio.auth.User;
 import com.tvboot.tivio.language.Language;
-import com.tvboot.tivio.language.LanguageRepository;
 import com.tvboot.tivio.tv.tvcategory.TvChannelCategoryRepository;
 import com.tvboot.tivio.auth.UserRepository;
 import com.tvboot.tivio.room.Room;
@@ -329,8 +329,7 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .localeCode("en-US")
                                 .charset("UTF-8")
                                 .isRtl(false)
-                                .isActive(true)
-                                .isDefault(true)
+
                                 .isAdminEnabled(true)
                                 .isGuestEnabled(true)
                                 .displayOrder(1)
@@ -342,11 +341,6 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .numberFormat("#,##0.00")
                                 .decimalSeparator('.')
                                 .thousandsSeparator(',')
-                                .uiTranslationProgress(100)
-                                .channelTranslationProgress(95)
-                                .epgTranslationEnabled(true)
-                                .welcomeMessage("Welcome to our hotel entertainment system!")
-                                .supportedPlatforms(Set.of("TIZEN", "WEBOS", "ANDROID", "WEB", "IOS"))
                                 .build(),
 
                         Language.builder()
@@ -357,8 +351,7 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .localeCode("ar-SA")
                                 .charset("UTF-8")
                                 .isRtl(true)
-                                .isActive(true)
-                                .isDefault(false)
+
                                 .isAdminEnabled(true)
                                 .isGuestEnabled(true)
                                 .displayOrder(2)
@@ -370,11 +363,7 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .numberFormat("#,##0.00")
                                 .decimalSeparator('.')
                                 .thousandsSeparator(',')
-                                .uiTranslationProgress(98)
-                                .channelTranslationProgress(90)
-                                .epgTranslationEnabled(true)
-                                .welcomeMessage("مرحباً بكم في نظام الترفيه بالفندق!")
-                                .supportedPlatforms(Set.of("TIZEN", "WEBOS", "ANDROID", "WEB", "IOS"))
+
                                 .build(),
 
                         Language.builder()
@@ -385,8 +374,8 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .localeCode("fr-FR")
                                 .charset("UTF-8")
                                 .isRtl(false)
-                                .isActive(true)
-                                .isDefault(false)
+
+
                                 .isAdminEnabled(true)
                                 .isGuestEnabled(true)
                                 .displayOrder(3)
@@ -398,11 +387,6 @@ public class DatabaseInitializer implements CommandLineRunner {
                                 .numberFormat("# ##0,00")
                                 .decimalSeparator(',')
                                 .thousandsSeparator(' ')
-                                .uiTranslationProgress(100)
-                                .channelTranslationProgress(88)
-                                .epgTranslationEnabled(true)
-                                .welcomeMessage("Bienvenue dans notre système de divertissement hôtelier!")
-                                .supportedPlatforms(Set.of("TIZEN", "WEBOS", "ANDROID", "WEB", "IOS"))
                                 .build()
                 );
 

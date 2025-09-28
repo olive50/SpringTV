@@ -1,4 +1,4 @@
-package com.tvboot.tivio.language.translation;
+package com.tvboot.tivio.translation;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

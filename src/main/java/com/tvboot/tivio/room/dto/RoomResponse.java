@@ -1,6 +1,8 @@
 package com.tvboot.tivio.room.dto;
 
 import com.tvboot.tivio.guest.Guest;
+import com.tvboot.tivio.guest.dto.GuestResponseDto;
+import com.tvboot.tivio.terminal.dto.TerminalDto;
 import com.tvboot.tivio.tv.tvpackage.ChannelPackage;
 import com.tvboot.tivio.room.Room;
 import com.tvboot.tivio.terminal.Terminal;
@@ -31,10 +33,11 @@ public class RoomResponse {
     private String fullRoomIdentifier;
 
 
-    // Terminal info
-    private List<Guest> guests;
-    // Terminal info
-    private List<Terminal> terminals;
+    // ✅ FIXED: Use GuestResponseDto instead of Guest entity
+    private List<GuestResponseDto> guests;
+
+    // ✅ RECOMMENDED: Create TerminalDto to avoid similar issues
+    private List<TerminalDto> terminals; // or keep as Terminal if no lazy loading issues
 
     // Audit fields
     private LocalDateTime createdAt;

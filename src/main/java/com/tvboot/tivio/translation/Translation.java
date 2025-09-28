@@ -1,4 +1,4 @@
-package com.tvboot.tivio.language.translation;
+package com.tvboot.tivio.translation;
 
 
 import com.tvboot.tivio.language.Language;

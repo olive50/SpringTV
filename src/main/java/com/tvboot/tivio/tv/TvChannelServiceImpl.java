@@ -36,7 +36,6 @@ public class TvChannelServiceImpl implements TvChannelService {
     private final TvChannelCategoryRepository categoryRepository;
     private final LanguageRepository languageRepository;
 
-    @Autowired
     private FileStorageService fileStorageService;
 
     @Autowired
@@ -341,7 +340,7 @@ public class TvChannelServiceImpl implements TvChannelService {
         // Handle logo upload with custom filename
         if (logoFile != null && !logoFile.isEmpty()) {
             // Generate custom filename using channel name and number
-            String customFilename = FileStorageService.generateChannelLogoFilename(
+            String customFilename = fileStorageService.generateChannelLogoFilename(
                     createDTO.getName(),           // Use DTO name since entity might not have all fields set
                     createDTO.getChannelNumber(),  // Use DTO channel number
                     logoFile.getOriginalFilename()
@@ -396,7 +395,7 @@ public class TvChannelServiceImpl implements TvChannelService {
             }
 
             // Generate custom filename and save new logo
-            String customFilename = FileStorageService.generateChannelLogoFilename(
+            String customFilename = fileStorageService.generateChannelLogoFilename(
                     channel.getName(),
                     channel.getChannelNumber(),
                     logoFile.getOriginalFilename()

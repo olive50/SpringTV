@@ -1,4 +1,4 @@
-package com.tvboot.tivio.language.translation;
+package com.tvboot.tivio.translation;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

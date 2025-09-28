@@ -51,7 +51,7 @@ public class GuestResponseDto {
     public static class LanguageDto {
         private Long id;
         private String name;
-        private String code;
+        private String localeCode;
     }
 
     @Data

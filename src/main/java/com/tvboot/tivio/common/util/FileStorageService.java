@@ -85,9 +85,16 @@ public class FileStorageService {
         }
     }
 
-    private String getFileExtension(String filename) {
-        int dotIndex = filename.lastIndexOf('.');
-        return (dotIndex == -1) ? "" : filename.substring(dotIndex);
+//    private String getFileExtension(String filename) {
+//        int dotIndex = filename.lastIndexOf('.');
+//        return (dotIndex == -1) ? "" : filename.substring(dotIndex);
+//    }
+
+    private  String getFileExtension(String filename) {
+        if (filename == null || filename.lastIndexOf('.') == -1) {
+            return "";
+        }
+        return filename.substring(filename.lastIndexOf('.'));
     }
 
     public String storeFileWithCustomName(MultipartFile file, String subDir, String customFilename) {
@@ -119,7 +126,7 @@ public class FileStorageService {
         }
     }
 
-    public static String generateChannelLogoFilename(String channelName, int channelNumber, String originalFilename) {
+    public  String generateChannelLogoFilename(String channelName, int channelNumber, String originalFilename) {
         // Get file extension
         String extension = "";
         if (originalFilename != null && originalFilename.contains(".")) {
@@ -136,4 +143,20 @@ public class FileStorageService {
         // Format: channel-name_number.extension
         return String.format("%s_%d%s", sanitizedName, channelNumber, extension);
     }
+
+    public  String generateLanguageFlagFilename(String languageName, String iso6391, String originalFilename) {
+        String extension = getFileExtension(originalFilename);
+        String sanitizedName = sanitizeFilename(languageName);
+        return String.format("flag_%s_%s_%d%s",
+                sanitizedName.toLowerCase(),
+                iso6391.toLowerCase(),
+                System.currentTimeMillis(),
+                extension);
+    }
+
+    private  String sanitizeFilename(String filename) {
+        return filename.replaceAll("[^a-zA-Z0-9._-]", "_");
+    }
+
+
 }

@@ -354,7 +354,7 @@ public class GuestService {
     private void validateRelatedEntities(Guest guest) {
         // Validate language exists
         if (guest.getLanguage() != null && guest.getLanguage().getId() != null) {
-            boolean languageExists = languageRepository.existsById(guest.getLanguage().getId());
+            Boolean languageExists = languageRepository.existsById(guest.getLanguage().getId());
             if (!languageExists) {
                 throw new RuntimeException("Language not found with ID: " + guest.getLanguage().getId());
             }

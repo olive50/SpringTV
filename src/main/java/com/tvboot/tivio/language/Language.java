@@ -54,30 +54,6 @@ public class Language {
     public static final String DEFAULT_TIME_FORMAT = "HH:mm";
     public static final int MAX_DISPLAY_ORDER = 9999;
 
-    // Common language codes for quick reference
-    public enum CommonLanguage {
-        ENGLISH("en", "eng", "en-US"),
-        FRENCH("fr", "fra", "fr-FR"),
-        SPANISH("es", "spa", "es-ES"),
-        ARABIC("ar", "ara", "ar-SA"),
-        CHINESE("zh", "zho", "zh-CN"),
-        RUSSIAN("ru", "rus", "ru-RU"),
-        GERMAN("de", "deu", "de-DE");
-
-        private final String iso6391;
-        private final String iso6392;
-        private final String localeCode;
-
-        CommonLanguage(String iso6391, String iso6392, String localeCode) {
-            this.iso6391 = iso6391;
-            this.iso6392 = iso6392;
-            this.localeCode = localeCode;
-        }
-
-        public String getIso6391() { return iso6391; }
-        public String getIso6392() { return iso6392; }
-        public String getLocaleCode() { return localeCode; }
-    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -113,9 +89,6 @@ public class Language {
     @Builder.Default
     private String charset = DEFAULT_CHARSET; // UTF-8, iso-8859-1
 
-    @Size(max = 500, message = "Flag URL must not exceed 500 characters")
-    @Column(name = "flag_url", length = 500)
-    private String flagUrl; // URL to flag image (e.g., CDN or external URL)
 
     @Size(max = 255, message = "Flag path must not exceed 255 characters")
     @Column(name = "flag_path", length = 255)
@@ -125,13 +98,6 @@ public class Language {
     @Builder.Default
     private Boolean isRtl = false; // Right-to-left for Arabic, Hebrew, etc.
 
-    @Column(name = "is_active", nullable = false)
-    @Builder.Default
-    private Boolean isActive = true;
-
-    @Column(name = "is_default", nullable = false)
-    @Builder.Default
-    private Boolean isDefault = false;
 
     // IPTV Platform-specific availability flags
     @Column(name = "is_admin_enabled", nullable = false)
@@ -179,32 +145,11 @@ public class Language {
 
     @Column(name = "decimal_separator", length = 1)
     @Builder.Default
-    private char decimalSeparator = '.';
+    private Character decimalSeparator = '.';
 
     @Column(name = "thousands_separator", length = 1)
     @Builder.Default
-    private char thousandsSeparator = ',';
-
-
-    // Translation status tracking
-    @Column(name = "ui_translation_progress")
-    @Min(0) @Max(100)
-    @Builder.Default
-    private Integer uiTranslationProgress = 0; // Percentage of UI elements translated
-
-    @Column(name = "channel_translation_progress")
-    @Min(0) @Max(100)
-    @Builder.Default
-    private Integer channelTranslationProgress = 0; // Percentage of channel names/descriptions translated
-
-
-    @Column(name = "epg_translation_enabled")
-    @Builder.Default
-    private Boolean epgTranslationEnabled = false; // Whether EPG (Electronic Program Guide) is translated
-
-    // Welcome message for hotel guests
-    @Column(name = "welcome_message", columnDefinition = "TEXT")
-    private String welcomeMessage; // Localized welcome message for TV app
+    private Character thousandsSeparator = ',';
 
     // Audit fields
     @CreationTimestamp
@@ -215,240 +160,4 @@ public class Language {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @CreatedBy
-    @Column(name = "created_by", length = 100)
-    private String createdBy;
-
-    @LastModifiedBy
-    @Column(name = "last_modified_by", length = 100)
-    private String lastModifiedBy;
-
-
-    // Relationships (if needed in future)
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(
-            name = "language_supported_platforms",
-            joinColumns = @JoinColumn(name = "language_id")
-    )
-    @Column(name = "platform")
-    @Builder.Default
-    private Set<String> supportedPlatforms = new HashSet<>(); // "TIZEN", "WEBOS", "ANDROID", etc.
-
-    // ==========================================
-    // HELPER METHODS
-    // ==========================================
-
-    /**
-     * Check if language is Right-to-Left
-     */
-    public boolean isRightToLeft() {
-        return Boolean.TRUE.equals(isRtl);
-    }
-
-    /**
-     * Get the effective locale code with fallback
-     */
-    public String getEffectiveLocaleCode() {
-        if (localeCode != null && !localeCode.isEmpty()) {
-            return localeCode;
-        }
-        // Fallback to ISO 639-1 code
-        return iso6391;
-    }
-
-    /**
-     * Get Java Locale object
-     */
-    public Locale getLocale() {
-        String effectiveLocale = getEffectiveLocaleCode();
-        if (effectiveLocale.contains("-")) {
-            String[] parts = effectiveLocale.split("-");
-            return new Locale(parts[0], parts[1]);
-        }
-        return new Locale(effectiveLocale);
-    }
-
-    /**
-     * Get flag source with URL priority over path
-     */
-    public String getEffectiveFlagSource() {
-        if (flagUrl != null && !flagUrl.isEmpty()) {
-            return flagUrl;
-        }
-        return flagPath;
-    }
-
-    /**
-     * Get display name for UI (native name with fallback to name)
-     */
-    public String getDisplayName() {
-        if (nativeName != null && !nativeName.isEmpty()) {
-            return nativeName;
-        }
-        return name;
-    }
-
-    /**
-     * Check if this language is suitable for basic display
-     */
-    public boolean isReadyForDisplay() {
-        return Boolean.TRUE.equals(isActive) &&
-                name != null &&
-                !name.isEmpty() &&
-                iso6391 != null &&
-                !iso6391.isEmpty();
-    }
-
-    /**
-     * Check if language is available for admin platform (Angular app)
-     * Used for managing channels, terminals, and hotel configuration
-     */
-    public boolean isAvailableForAdmin() {
-        return Boolean.TRUE.equals(isActive) &&
-                Boolean.TRUE.equals(isAdminEnabled) &&
-                isReadyForDisplay();
-    }
-
-    /**
-     * Check if language is ready for guest TV applications
-     * Used in Samsung Tizen, LG WebOS apps for guest language selection
-     */
-    public boolean isAvailableForGuests() {
-        return Boolean.TRUE.equals(isActive) &&
-                Boolean.TRUE.equals(isGuestEnabled) &&
-                isReadyForDisplay() &&
-                uiTranslationProgress != null &&
-                uiTranslationProgress >= 80; // At least 80% translated
-    }
-
-    /**
-     * Check if language needs guest app configuration
-     * Active for admin but not yet ready for guests
-     */
-    public boolean needsGuestConfiguration() {
-        return Boolean.TRUE.equals(isActive) &&
-                Boolean.TRUE.equals(isAdminEnabled) &&
-                Boolean.FALSE.equals(isGuestEnabled) &&
-                isReadyForDisplay();
-    }
-
-    /**
-     * Check if language is fully translated for TV apps
-     */
-    public boolean isFullyTranslated() {
-        return uiTranslationProgress != null && uiTranslationProgress == 100 &&
-                channelTranslationProgress != null && channelTranslationProgress == 100;
-    }
-
-    /**
-     * Get the effective font family with fallback
-     */
-    public String getEffectiveFontFamily() {
-        if (fontFamily != null && !fontFamily.isEmpty()) {
-            return fontFamily;
-        }
-
-        // Provide defaults based on script/language
-        if (isRightToLeft()) {
-            return "Arial, 'Noto Sans Arabic', sans-serif";
-        } else if ("zh".equals(iso6391)) {
-            return "'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif";
-        } else if ("ja".equals(iso6391)) {
-            return "'Noto Sans CJK JP', 'Hiragino Sans', sans-serif";
-        } else if ("ko".equals(iso6391)) {
-            return "'Noto Sans CJK KR', 'Malgun Gothic', sans-serif";
-        } else if ("hi".equals(iso6391)) {
-            return "'Noto Sans Devanagari', 'Mangal', sans-serif";
-        } else if ("th".equals(iso6391)) {
-            return "'Noto Sans Thai', 'Tahoma', sans-serif";
-        }
-
-        return "Arial, sans-serif";
-    }
-
-    /**
-     * Format number according to language settings
-     */
-//    public String formatNumber(double number) {
-//        String formatted = String.format("%.2f", number);
-//        if (thousandsSeparator != ' ' && thousandsSeparator !=',') {
-//            // Simple formatting - can be enhanced with NumberFormat
-//            formatted = formatted.replace(",", thousandsSeparator);
-//        }
-//        if (decimalSeparator != null && !decimalSeparator.equals('.')) {
-//            formatted = formatted.replace(".", decimalSeparator);
-//        }
-//        return formatted;
-//    }
-
-    /**
-     * Get platform-specific language code
-     * All platforms use the same standard locale code
-     */
-    public String getPlatformSpecificCode(String platform) {
-        // All platforms (Tizen, WebOS, Android, etc.) use the same standard locale
-        return getEffectiveLocaleCode();
-    }
-
-    /**
-     * Check if platform is supported
-     */
-    public boolean isPlatformSupported(String platform) {
-        return supportedPlatforms != null &&
-                supportedPlatforms.contains(platform.toUpperCase());
-    }
-
-    /**
-     * Calculate overall translation readiness
-     */
-    public int getOverallTranslationProgress() {
-        int uiProgress = uiTranslationProgress != null ? uiTranslationProgress : 0;
-        int channelProgress = channelTranslationProgress != null ? channelTranslationProgress : 0;
-        return (uiProgress + channelProgress) / 2;
-    }
-
-    /**
-     * Pre-persist validation
-     */
-    @PrePersist
-    @PreUpdate
-    private void validateLanguage() {
-        // Ensure charset has a default
-        if (charset == null || charset.isEmpty()) {
-            charset = DEFAULT_CHARSET;
-        }
-
-        // Ensure date/time formats have defaults
-        if (dateFormat == null || dateFormat.isEmpty()) {
-            dateFormat = DEFAULT_DATE_FORMAT;
-        }
-        if (timeFormat == null || timeFormat.isEmpty()) {
-            timeFormat = DEFAULT_TIME_FORMAT;
-        }
-
-        // Ensure only one default language
-        // This should be handled at service level with proper transaction
-
-        // Initialize supported platforms if null
-        if (supportedPlatforms == null) {
-            supportedPlatforms = new HashSet<>();
-        }
-
-        // Auto-detect RTL languages
-        if (iso6391 != null && (iso6391.equals("ar") || iso6391.equals("he") ||
-                iso6391.equals("fa") || iso6391.equals("ur"))) {
-            isRtl = true;
-        }
-    }
-
-    /**
-     * Post-load initialization
-     */
-    @PostLoad
-    private void postLoad() {
-        // Initialize transient fields if needed
-        if (supportedPlatforms == null) {
-            supportedPlatforms = new HashSet<>();
-        }
-    }
 }

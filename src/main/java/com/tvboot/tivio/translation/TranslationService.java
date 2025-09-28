@@ -1,4 +1,4 @@
-package com.tvboot.tivio.language.translation;
+package com.tvboot.tivio.translation;
 
 import com.tvboot.tivio.language.Language;
 import com.tvboot.tivio.language.LanguageRepository;
@@ -69,8 +69,8 @@ public class TranslationService {
     public void updateTranslationProgress(Language language) {
         long translationCount = translationRepository.countByLanguageId(language.getId());
         // You might have a different way to calculate progress
-        int progress = calculateProgress(translationCount);
-        language.setUiTranslationProgress(progress);
+
+
         languageRepository.save(language);
     }
 
