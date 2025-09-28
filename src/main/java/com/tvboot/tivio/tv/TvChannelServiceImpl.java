@@ -93,12 +93,14 @@ public class TvChannelServiceImpl implements TvChannelService {
 
     @Override
     public Page<TvChannel> getChannels(int page, int size, String q, Long categoryId, Long languageId, Boolean isActive) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("channelNumber").ascending());
+        log.debug("Getting filtered channels - page: {}, size: {}, q: {}, categoryId: {}, languageId: {}, isActive: {}",
+                page, size, q, categoryId, languageId, isActive);
 
-        // Simplest version: adjust according to your repo methods
+        // Use unsorted pageable - let the native query handle sorting
+        Pageable pageable = PageRequest.of(page, size);
+
         return tvChannelRepository.findAllWithFilters(q, categoryId, languageId, isActive, pageable);
     }
-
     @Override
     @Transactional(readOnly = true)
     public long countChannels() {

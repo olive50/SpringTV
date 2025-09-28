@@ -12,7 +12,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-// src/main/java/com/tvboot/iptv/repository/TerminalRepository.java
 @Repository
 public interface TerminalRepository extends JpaRepository<Terminal, Long>, JpaSpecificationExecutor<Terminal> {
 
@@ -43,5 +42,4 @@ public interface TerminalRepository extends JpaRepository<Terminal, Long>, JpaSp
 
     @Query("SELECT AVG(t.uptime) FROM Terminal t WHERE t.uptime IS NOT NULL")
     Double getAverageUptime();
-
-   }
+}

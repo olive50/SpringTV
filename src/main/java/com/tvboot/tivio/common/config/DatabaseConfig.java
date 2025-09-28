@@ -37,16 +37,20 @@ public class DatabaseConfig {
 
     /**
      * Primary DataSource with optimized HikariCP configuration
-     * FIX: Properly configured for MySQL 8 with transaction handling
+     * FIX: Properly configured for PostgreSQL with transaction handling
      */
     @Bean
     @Primary
     public DataSource dataSource() {
+        log.info("Configuring HikariCP DataSource for PostgreSQL...");
+
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(jdbcUrl);
         config.setUsername(username);
         config.setPassword(password);
-        config.setDriverClassName("org.postgresql.Driver");
+
+        // ✅ FIX: Use the driver from properties instead of hardcoding
+        config.setDriverClassName(driverClassName);
 
         // PostgreSQL specific optimizations
         config.setMaximumPoolSize(20);
@@ -55,20 +59,25 @@ public class DatabaseConfig {
         config.setIdleTimeout(600000);
         config.setMaxLifetime(1800000);
 
+        // ✅ FIX: Disable auto-commit for proper transaction handling
+        config.setAutoCommit(false);
+
         // PostgreSQL specific properties
         config.addDataSourceProperty("ApplicationName", "tvboot-iptv");
         config.addDataSourceProperty("logServerErrorDetail", "false");
         config.addDataSourceProperty("prepareThreshold", "5");
         config.addDataSourceProperty("binaryTransfer", "true");
 
+        log.info("HikariCP DataSource configured successfully");
         return new HikariDataSource(config);
     }
+
     /**
-     * EntityManagerFactory with optimized Hibernate properties for MySQL 8
+     * EntityManagerFactory with optimized Hibernate properties for PostgreSQL
      */
     @Bean
     public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
-        log.info("Configuring EntityManagerFactory for MySQL 8...");
+        log.info("Configuring EntityManagerFactory for PostgreSQL...");
 
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(dataSource());
@@ -77,16 +86,15 @@ public class DatabaseConfig {
         HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         em.setJpaVendorAdapter(vendorAdapter);
 
-        // Hibernate properties optimized for MySQL 8
+        // Hibernate properties optimized for PostgreSQL
         Properties properties = new Properties();
 
-        // Database dialect - MySQL 8 specific
-        properties.setProperty("hibernate.dialect", "org.hibernate.dialect.MySQLDialect");
+
+        properties.setProperty("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
 
         // Schema management - Use validate with Flyway
         properties.setProperty("hibernate.hbm2ddl.auto", "validate");
 
-        // Transaction and connection management - CRITICAL FIXES
         properties.setProperty("hibernate.connection.autocommit", "false");
         properties.setProperty("hibernate.connection.provider_disables_autocommit", "true");
         properties.setProperty("hibernate.transaction.coordinator_class", "jdbc");
@@ -99,9 +107,8 @@ public class DatabaseConfig {
         properties.setProperty("hibernate.order_updates", "true");
         properties.setProperty("hibernate.batch_versioned_data", "true");
 
-        // MySQL 8 specific optimizations
-        properties.setProperty("hibernate.connection.CharSet", "utf8mb4");
-        properties.setProperty("hibernate.connection.characterEncoding", "utf8mb4");
+
+        properties.setProperty("hibernate.connection.characterEncoding", "utf8");
         properties.setProperty("hibernate.connection.useUnicode", "true");
 
         // Cache configuration (disabled for now, can be enabled with Redis)
@@ -117,12 +124,12 @@ public class DatabaseConfig {
 
         em.setJpaProperties(properties);
 
-        log.info("EntityManagerFactory configured successfully for MySQL 8");
+        log.info("EntityManagerFactory configured successfully for PostgreSQL");
         return em;
     }
 
     /**
-     * Transaction Manager with proper configuration for MySQL 8
+     * Transaction Manager with proper configuration for PostgreSQL
      */
     @Bean
     public PlatformTransactionManager transactionManager() {

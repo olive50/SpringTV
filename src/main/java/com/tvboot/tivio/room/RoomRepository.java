@@ -1,6 +1,5 @@
 package com.tvboot.tivio.room;
 
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,18 +14,13 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     // Basic CRUD operations
     Optional<Room> findByRoomNumber(String roomNumber);
-
     boolean existsByRoomNumber(String roomNumber);
 
     // Find methods
     List<Room> findByStatus(Room.RoomStatus status);
-
     List<Room> findByRoomType(Room.RoomType roomType);
-
     List<Room> findByBuilding(String building);
-
     List<Room> findByFloorNumber(Integer floorNumber);
-
 
     // Complex queries
     @Query("SELECT r FROM Room r WHERE r.capacity >= :guests AND r.status = 'AVAILABLE'")
@@ -61,8 +55,6 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     @Query("SELECT COUNT(r) FROM Room r WHERE r.status = 'MAINTENANCE'")
     int countMaintenanceRooms();
 
-  
-
     @Query("SELECT COUNT(r) FROM Room r WHERE r.status = 'CLEANING'")
     int countCleaningRooms();
 
@@ -90,27 +82,16 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     // Count by price range
     @Query("SELECT COUNT(r) FROM Room r WHERE r.pricePerNight BETWEEN :minPrice AND :maxPrice")
     int countByPriceRange(@Param("minPrice") BigDecimal minPrice,
-                           @Param("maxPrice") BigDecimal maxPrice);
+                          @Param("maxPrice") BigDecimal maxPrice);
 
     @Query("SELECT COUNT(r) FROM Room r WHERE r.pricePerNight BETWEEN :minPrice AND :maxPrice AND r.status = 'AVAILABLE'")
     long countAvailableByPriceRange(@Param("minPrice") BigDecimal minPrice,
                                     @Param("maxPrice") BigDecimal maxPrice);
 
-//    // Count by occupancy
     @Query("SELECT COUNT(r) FROM Room r WHERE r.capacity >= :minOccupancy")
     int countByMinOccupancy(@Param("minOccupancy") Integer minOccupancy);
-//
-//    @Query("SELECT COUNT(r) FROM Room r WHERE r.capacity <= :capacity")
-//    long countByMaxOccupancy(@Param("capacity") Integer capacity);
-//
-//    @Query("SELECT COUNT(r) FROM Room r WHERE r.capacity BETWEEN :minOccupancy AND :capacity")
-//    long countByOccupancyRange(@Param("minOccupancy") Integer minOccupancy,
-//                               @Param("capacity") Integer capacity);
 
-
-
-
-    // Count with terminals
+    // Count with terminals - PostgreSQL array_length function
     @Query("SELECT COUNT(r) FROM Room r WHERE SIZE(r.terminals) > 0")
     int countWithTerminals();
 
@@ -132,8 +113,8 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     @Query("SELECT MIN(r.pricePerNight) FROM Room r WHERE r.status = 'AVAILABLE'")
     BigDecimal findMinPriceOfAvailableRooms();
-//
-  @Query("SELECT AVG(r.capacity) FROM Room r")
+
+    @Query("SELECT AVG(r.capacity) FROM Room r")
     Double findAverageOccupancy();
 
     // Search count methods
@@ -143,11 +124,5 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     // Count by multiple criteria
     @Query("SELECT COUNT(r) FROM Room r WHERE r.building = :building AND r.floorNumber = :floorNumber AND r.status = 'AVAILABLE'")
     int countAvailableByBuildingAndFloor(@Param("building") String building,
-                                          @Param("floorNumber") Integer floorNumber);
-
-//    @Query("SELECT COUNT(r) FROM Room r WHERE r.roomType = :roomType AND r.capacity >= :minOccupancy AND r.status = 'AVAILABLE'")
-//    long countAvailableByTypeAndMinOccupancy(@Param("roomType") Room.RoomType roomType,
-//   @Query("SELECT COUNT(r) FROM Room r WHERE r.roomType = :roomType AND r.capacity >= :minOccupancy AND r.status = 'AVAILABLE'")
-//    long countAvailableByTypeAndMinOccupancy(@Param("roomType") Room.RoomType roomType,
-//                                             @Param("minOccupancy") Integer minOccupancy);
+                                         @Param("floorNumber") Integer floorNumber);
 }

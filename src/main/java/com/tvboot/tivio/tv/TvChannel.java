@@ -19,8 +19,8 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "tv_channels")
-public class TvChannel  {
+@Table(name = "tv_channels", schema = "public")
+public class TvChannel {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -29,42 +29,39 @@ public class TvChannel  {
     @Column(name = "channel_number", unique = true)
     private int channelNumber;
 
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", nullable = false, columnDefinition = "VARCHAR(255)")
     private String name;
 
-    @Column(name = "description")
+    @Column(name = "description", columnDefinition = "VARCHAR(255")
     private String description;
 
-    @Column(name = "ip")
+    @Column(name = "ip", columnDefinition = "VARCHAR(45)")
     private String ip;
 
     @Column(name = "port")
     private int port;
 
-    @Column( name = "stream_url", nullable = false)
-    private String streamUrl; // future if udp stream brocken , internet stream url or other...
+    @Column(name = "stream_url", nullable = false, columnDefinition = "VARCHAR(255)")
+    private String streamUrl;
 
-    @ManyToOne(cascade = CascadeType.PERSIST)
+    @ManyToOne
     @JoinColumn(name = "category_id")
     private TvChannelCategory category;
 
-    @ManyToOne(cascade = CascadeType.PERSIST)
+    @ManyToOne
     @JoinColumn(name = "language_id")
     private Language language;
 
-
-    @Column(name = "logo_path")
+    @Column(name = "logo_path", columnDefinition = "VARCHAR(500)")
     private String logoPath;
 
-    @Column(name = "is_active",nullable = false)
+    @Column(name = "is_active", nullable = false)
     private Boolean active = true;
 
-
-    // Hotel-specific fields
-    @Column(name = "is_available",nullable = true)
+    @Column(name = "is_available", nullable = true)
     private Boolean available = true;
 
-    @Column(name = "sort_order", nullable = true )
+    @Column(name = "sort_order", nullable = true)
     private int sortOrder = 0;
 
     @CreationTimestamp
@@ -78,7 +75,4 @@ public class TvChannel  {
     @OneToMany(mappedBy = "channel", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<EpgEntry> epg = new ArrayList<>();
-
-
-
 }

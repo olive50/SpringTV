@@ -34,7 +34,7 @@ import org.springframework.context.annotation.Configuration;
                         
                         ## Architecture :
                         - Backend : Spring Boot 3.5.0 + Java 21
-                        - Database : MySQL 8.0+
+                        - Database : postgres+
                         - Security : JWT + Spring Security
                         - Frontend : Samsung Tizen, LG WebOS, Angular
                         

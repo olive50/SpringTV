@@ -1,21 +1,20 @@
-# ===================================================================
-# TVBOOT IPTV Platform - Base Configuration
-# ===================================================================
 spring:
   application:
     name: tivio-iptv-platform
 
   profiles:
     active: dev
-    # ==========================================
-    # DATABASE CONFIGURATION
-    # ==========================================
+
+  # ==========================================
+  # DATABASE CONFIGURATION - FIXED FOR POSTGRESQL
+  # ==========================================
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/tvboot_db?createDatabaseIfNotExist=false
+    url: jdbc:postgresql://localhost:5432/tvboot_db
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:root}
     hikari:
+      auto-commit: false
       maximum-pool-size: 20
       minimum-idle: 5
       connection-timeout: 30000
@@ -24,14 +23,12 @@ spring:
       leak-detection-threshold: 60000
       pool-name: TvBootHikariPoolPostgres
       data-source-properties:
-        # PostgreSQL specific optimizations
         ApplicationName: tvboot-iptv
         logServerErrorDetail: false
 
   # ==========================================
-  # JPA & HIBERNATE CONFIGURATION
+  # JPA & HIBERNATE CONFIGURATION - FIXED FOR POSTGRESQL
   # ==========================================
-
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
@@ -40,11 +37,16 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        jdbc.batch_size: 20
+        jdbc:
+          batch_size: 20
+          lob:
+            non_contextual_creation: true
         order_inserts: true
         order_updates: true
-        # PostgreSQL specific
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        temp:
+          use_jdbc_metadata_defaults: false
+        default_schema: public
 
   # ==========================================
   # FLYWAY CONFIGURATION
@@ -55,7 +57,6 @@ spring:
     baseline-on-migrate: true
     validate-on-migrate: true
     clean-disabled: false
-
 
   # ==========================================
   # MULTIPART (FILE UPLOAD)

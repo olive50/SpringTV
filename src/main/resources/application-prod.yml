@@ -1,42 +1,55 @@
 # ===================================================================
-# TVBOOT IPTV Platform - Production Profile Configuration
+# application-prod.yml - CORRECTED for PostgreSQL Production
 # ===================================================================
 
 spring:
+  config:
+    activate:
+      on-profile: prod
+
   # ==========================================
-  # DATABASE CONFIGURATION (PROD)
+  # DATABASE CONFIGURATION (PROD) - FIXED FOR POSTGRESQL
   # ==========================================
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/iptv_platform_prod?useSSL=true&requireSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&useUnicode=true&characterEncoding=utf8mb4
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:tvboot_prod}?ApplicationName=tvboot-prod&stringtype=unspecified&sslmode=require
     username: ${DB_USERNAME:prod_user}
     password: ${DB_PASSWORD:prod_pass}
     hikari:
       pool-name: TivioHikariPoolProd
-      maximum-pool-size: 30       # bigger pool for production load
+      maximum-pool-size: 30
       minimum-idle: 5
       idle-timeout: 600000
       connection-timeout: 30000
       max-lifetime: 1800000
       validation-timeout: 5000
-      leak-detection-threshold: 0 # disabled in production for performance
+      leak-detection-threshold: 0
       register-mbeans: true
+      data-source-properties:
+        prepareThreshold: 0
+        preparedStatementCacheQueries: 256
+        preparedStatementCacheSizeMiB: 5
 
   # ==========================================
-  # JPA & HIBERNATE CONFIGURATION (PROD)
+  # JPA & HIBERNATE CONFIGURATION (PROD) - FIXED
   # ==========================================
   jpa:
-    database-platform: org.hibernate.dialect.MySQL8Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: none     # ?? never auto-update schema in production
+      ddl-auto: none
     show-sql: false
     properties:
       hibernate:
         format_sql: false
         use_sql_comments: false
-        jdbc.batch_size: 50
+        jdbc:
+          batch_size: 50
+          lob:
+            non_contextual_creation: true
         order_inserts: true
         order_updates: true
+        temp:
+          use_jdbc_metadata_defaults: false
 
   # ==========================================
   # FLYWAY CONFIGURATION (PROD)
@@ -45,7 +58,7 @@ spring:
     enabled: true
     baseline-on-migrate: true
     validate-on-migrate: true
-    clean-disabled: true   # ?? prevent accidental drop in prod
+    clean-disabled: true
     encoding: UTF-8
     connect-retries: 5
 
@@ -82,9 +95,6 @@ logging:
       max-file-size: 200MB
       max-history: 14
       total-size-cap: 2GB
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"
 
 # ==========================================
 # ACTUATOR CONFIGURATION (PROD)
@@ -104,7 +114,7 @@ management:
 # APP CUSTOM CONFIGURATION (PROD)
 # ==========================================
 app:
-  jwtSecret: ${JWT_SECRET}   # ?? must be provided securely
+  jwtSecret: ${JWT_SECRET}
   jwtExpirationMs: 86400000
   upload:
     logos:
@@ -120,6 +130,6 @@ app:
 # ==========================================
 springdoc:
   api-docs:
-    enabled: false   # ?? disable in prod for security
+    enabled: false
   swagger-ui:
     enabled: false

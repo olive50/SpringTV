@@ -133,6 +133,7 @@ public interface GuestRepository extends JpaRepository<Guest, Long> {
             "FROM Guest g")
     Object[] getGuestStatistics(@Param("recentDate") LocalDateTime recentDate);
 
+    // PostgreSQL-specific date extraction
     @Query("SELECT " +
             "EXTRACT(YEAR FROM g.createdAt) as year, " +
             "EXTRACT(MONTH FROM g.createdAt) as month, " +

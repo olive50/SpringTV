@@ -1,6 +1,5 @@
 package com.tvboot.tivio.tv;
 
-
 import com.tvboot.tivio.language.Language;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,38 +28,39 @@ public interface TvChannelRepository extends JpaRepository<TvChannel, Long> {
     // Count methods
     long countByActiveTrue();
 
-//    long countByActiveTrueAndCategory(TvChannelCategory category);
     long countByActiveTrueAndCategory_name(String categoryName);
 
     // Find by category with pagination
     Page<TvChannel> findByActiveTrueAndCategoryOrderBySortOrderAscNameAsc(
             String category, Pageable pageable);
 
-    // Find channels available for guests
-
     long countByActiveTrueAndAvailableTrue();
 
-
-
     // Find by language
-    Page<TvChannel> findByLanguage_name(
-            String language, Pageable pageable);
+    Page<TvChannel> findByLanguage_name(String language, Pageable pageable);
 
-    // Search functionality
-    @Query("SELECT c FROM TvChannel c WHERE c.active = true AND " +
-            "(LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-            "LOWER(c.description) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-            "CAST(c.channelNumber AS string) LIKE CONCAT('%', :search, '%')) " +
-            "ORDER BY c.name ASC")
+    // Search functionality - PostgreSQL optimized
+    @Query("""
+
+            SELECT c FROM TvChannel c
+    WHERE c.active = true
+      AND (:search IS NULL 
+           OR LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%'))
+           OR LOWER(c.description) LIKE LOWER(CONCAT('%', :search, '%'))
+           OR CAST(c.channelNumber AS string) LIKE CONCAT('%', :search, '%'))
+    ORDER BY c.name ASC
+    """)
     Page<TvChannel> searchChannels(@Param("search") String search, Pageable pageable);
-
-    @Query("SELECT COUNT(c) FROM TvChannel c WHERE c.active = true AND " +
-            "(LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-            "LOWER(c.description) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-            "CAST(c.channelNumber AS string) LIKE CONCAT('%', :search, '%'))")
+    @Query("""
+    SELECT COUNT(c) FROM TvChannel c
+    WHERE c.active = true
+      AND (:search IS NULL 
+           OR LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%'))
+           OR LOWER(c.description) LIKE LOWER(CONCAT('%', :search, '%'))
+           OR CAST(c.channelNumber AS string) LIKE CONCAT('%', :search, '%'))
+    """)
     long countSearchChannels(@Param("search") String search);
-
-    // Find by tvChannel number
+    // Find by channel number
     Optional<TvChannel> findByChannelNumberAndActiveTrue(Integer channelNumber);
 
     // Get all categories
@@ -72,12 +72,10 @@ public interface TvChannelRepository extends JpaRepository<TvChannel, Long> {
     List<String> findAllLanguages();
 
     Page<TvChannel> findByActive(boolean active, Pageable pageable);
-
     long countByActive(boolean active);
 
-    // ✅ If you later want HD and Available queries:
-
     Page<TvChannel> findByAvailable(boolean available, Pageable pageable);
+
     @Query("SELECT c FROM TvChannel c WHERE c.ip = :ip AND c.port = :port")
     Optional<TvChannel> findByIpAndPort(@Param("ip") String ip, @Param("port") int port);
 
@@ -102,35 +100,65 @@ public interface TvChannelRepository extends JpaRepository<TvChannel, Long> {
     List<Object[]> countByLanguage();
 
     Page<TvChannel> findByActiveTrueAndAvailableTrueOrderBySortOrderAscNameAsc(Pageable pageable);
-
-
     Page<TvChannel> findByActiveTrueAndLanguageOrderBySortOrderAscNameAsc(Language language, Pageable pageable);
-
     Page<TvChannel> findByActiveTrueAndLanguage_NameOrderBySortOrderAscNameAsc(String language, Pageable pageable);
 
-    @Query("""
-    SELECT c FROM TvChannel c
-    WHERE (:q IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :q, '%')))
-      AND (:categoryId IS NULL OR c.category.id = :categoryId)
-      AND (:languageId IS NULL OR c.language.id = :languageId)
-      AND (:isActive IS NULL OR c.active = :isActive)
-""")
-    Page<TvChannel> findAllWithFilters(String q, Long categoryId, Long languageId, Boolean isActive, Pageable pageable);
+
 
     Optional<TvChannel> findBySortOrder(int sortOrder);
 
-    // PostgreSQL full-text search
-    @Query(value = "SELECT * FROM tv_channels WHERE " +
-            "to_tsvector('english', name || ' ' || COALESCE(description, '')) " +
-            "@@ plainto_tsquery('english', ?1)", nativeQuery = true)
-    Page<TvChannel> findByFullTextSearch(String searchTerm, Pageable pageable);
-
     // JSONB queries
-    @Query(value = "SELECT * FROM tv_channels WHERE " +
-            "metadata @> ?1::jsonb", nativeQuery = true)
-    List<TvChannel> findByMetadata(String jsonCriteria);
+
 
     // Network address queries
     @Query("SELECT c FROM TvChannel c WHERE c.ip = :ip")
     List<TvChannel> findByIpAddress(@Param("ip") String ip);
+
+    @Query(value = """
+        SELECT * FROM tv_channels 
+        WHERE 
+          CASE WHEN :q IS NULL THEN true
+               ELSE LOWER(name) LIKE LOWER('%' || :q || '%')
+          END
+          AND 
+          CASE WHEN :categoryId IS NULL THEN true
+               ELSE category_id = :categoryId
+          END
+          AND 
+          CASE WHEN :languageId IS NULL THEN true
+               ELSE language_id = :languageId
+          END
+          AND 
+          CASE WHEN :isActive IS NULL THEN true
+               ELSE is_active = :isActive
+          END
+        ORDER BY channel_number
+        """,
+            countQuery = """
+        SELECT COUNT(*) FROM tv_channels 
+        WHERE 
+          CASE WHEN :q IS NULL THEN true
+               ELSE LOWER(name) LIKE LOWER('%' || :q || '%')
+          END
+          AND 
+          CASE WHEN :categoryId IS NULL THEN true
+               ELSE category_id = :categoryId
+          END
+          AND 
+          CASE WHEN :languageId IS NULL THEN true
+               ELSE language_id = :languageId
+          END
+          AND 
+          CASE WHEN :isActive IS NULL THEN true
+               ELSE is_active = :isActive
+          END
+        """,
+            nativeQuery = true)
+    Page<TvChannel> findAllWithFilters(
+            @Param("q") String q,
+            @Param("categoryId") Long categoryId,
+            @Param("languageId") Long languageId,
+            @Param("isActive") Boolean isActive,
+            Pageable pageable);
 }
+

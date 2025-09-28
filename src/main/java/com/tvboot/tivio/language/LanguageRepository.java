@@ -13,11 +13,9 @@ import java.util.Optional;
 @Repository
 public interface LanguageRepository extends JpaRepository<Language, Long> {
 
-
     Optional<Language> findByIso6391(String iso6391);
 
     Page<Language> findByIsAdminEnabledTrueOrderByDisplayOrderAscNameAsc(Pageable pageable);
-
     Page<Language> findByIsGuestEnabledTrueOrderByDisplayOrderAscNameAsc(Pageable pageable);
 
     // Search functionality
