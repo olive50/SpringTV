@@ -2,7 +2,7 @@ package com.tvboot.tivio.tv;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.tvboot.tivio.language.Language;
-import com.tvboot.tivio.tv.epg.EpgEntry;
+import com.tvboot.tivio.epg.EpgEntry;
 import com.tvboot.tivio.tv.tvcategory.TvChannelCategory;
 import jakarta.persistence.*;
 import lombok.*;

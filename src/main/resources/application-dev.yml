@@ -7,9 +7,9 @@ spring:
   # DATABASE CONFIGURATION (DEV)
   # ==========================================
   datasource:
-    url: jdbc:mysql://localhost:3306/iptv_platform_dev?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&failOverReadOnly=false&maxReconnects=3&initialTimeout=2
+    url: jdbc:postgresql://localhost:5432/tvboot_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&failOverReadOnly=false&maxReconnects=3&initialTimeout=2
     hikari:
-      pool-name: TivioHikariPoolDev
+      pool-name: TvbootHikariPoolDev
       minimum-idle: 3
       leak-detection-threshold: 60000
       auto-commit: false

@@ -1,7 +1,6 @@
 package com.tvboot.tivio.room;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.tvboot.tivio.tv.tvpackage.ChannelPackage;
 import com.tvboot.tivio.guest.Guest;
 import com.tvboot.tivio.terminal.Terminal;
 import jakarta.persistence.*;

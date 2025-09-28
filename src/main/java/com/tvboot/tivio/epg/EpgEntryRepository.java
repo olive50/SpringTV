@@ -1,4 +1,4 @@
-package com.tvboot.tivio.tv.epg;
+package com.tvboot.tivio.epg;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

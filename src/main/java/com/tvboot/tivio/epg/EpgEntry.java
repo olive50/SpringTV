@@ -1,4 +1,4 @@
-package com.tvboot.tivio.tv.epg;
+package com.tvboot.tivio.epg;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.tvboot.tivio.tv.TvChannel;

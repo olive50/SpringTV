@@ -65,9 +65,10 @@
             <artifactId>flyway-core</artifactId>
             <groupId>org.flywaydb</groupId>
         </dependency>
+
         <dependency>
-            <artifactId>flyway-mysql</artifactId>
             <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
         <dependency>
             <artifactId>lombok</artifactId>
@@ -213,11 +214,11 @@
                 <artifactId>flyway-maven-plugin</artifactId>
                 <version>10.15.0</version>
                 <configuration>
-                    <url>jdbc:mysql://localhost:3306/iptv_platform?createDatabaseIfNotExist=true</url>
+                    <url>jdbc:postgresql://localhost:5432/tivio_db?createDatabaseIfNotExist=true</url>
                     <user>${DB_USERNAME}</user>
                     <password>${DB_PASSWORD}</password>
                     <schemas>
-                        <schema>iptv_platform</schema>
+                        <schema>tivio_db</schema>
                     </schemas>
                     <locations>
                         <location>classpath:db/migration</location>

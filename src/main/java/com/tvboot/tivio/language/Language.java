@@ -18,29 +18,15 @@ import java.util.Locale;
 import java.util.Set;
 
 @Entity
-@Table(name = "languages",
-        indexes = {
-                @Index(name = "idx_language_iso_639_1", columnList = "iso_639_1"),
-                @Index(name = "idx_language_active", columnList = "is_active"),
-                @Index(name = "idx_language_default", columnList = "is_default"),
-                @Index(name = "idx_language_admin_enabled", columnList = "is_admin_enabled"),
-                @Index(name = "idx_language_guest_enabled", columnList = "is_guest_enabled"),
-                @Index(name = "idx_language_display_order", columnList = "display_order"),
-                @Index(name = "idx_language_composite", columnList = "is_active,is_guest_enabled,display_order")
-        },
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_language_default", columnNames = "is_default")
-        })
-@EntityListeners(AuditingEntityListener.class)
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+@Table(name = "languages")
+
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder(toBuilder = true)
-@ToString(exclude = {"createdBy", "lastModifiedBy", "translations"})
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@Accessors(chain = true)
+
+
 public class Language {
 
 //    private static final long serialVersionUID = 1L;

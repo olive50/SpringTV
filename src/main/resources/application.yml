@@ -12,9 +12,9 @@ spring:
     # ==========================================
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/iptv_platform?createDatabaseIfNotExist=false
+    url: jdbc:postgresql://localhost:5432/tvboot_db?createDatabaseIfNotExist=false
     username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    password: ${DB_PASSWORD:root}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
