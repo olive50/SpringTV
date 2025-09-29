@@ -3,6 +3,7 @@ package com.tvboot.tivio.language;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -11,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface LanguageRepository extends JpaRepository<Language, Long> {
+public interface LanguageRepository extends JpaRepository<Language, Long>, JpaSpecificationExecutor<Language> {
 
     Optional<Language> findByIso6391(String iso6391);
 
@@ -27,7 +28,7 @@ public interface LanguageRepository extends JpaRepository<Language, Long> {
     Page<Language> searchLanguages(@Param("search") String search, Pageable pageable);
 
     // Advanced filtering
-    @Query("SELECT l FROM Language l WHERE " +
+  /*  @Query("SELECT l FROM Language l WHERE " +
             "(:q IS NULL OR LOWER(l.name) LIKE LOWER(CONCAT('%', :q, '%'))) AND " +
             "(:isAdminEnabled IS NULL OR l.isAdminEnabled = :isAdminEnabled) AND " +
             "(:isGuestEnabled IS NULL OR l.isGuestEnabled = :isGuestEnabled) AND " +
@@ -37,7 +38,7 @@ public interface LanguageRepository extends JpaRepository<Language, Long> {
                                       @Param("isAdminEnabled") Boolean isAdminEnabled,
                                       @Param("isGuestEnabled") Boolean isGuestEnabled,
                                       @Param("isRtl") Boolean isRtl,
-                                      Pageable pageable);
+                                      Pageable pageable);*/
 
     // Count methods
     long countByIsAdminEnabledTrue();

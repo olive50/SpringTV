@@ -4,6 +4,7 @@ import com.tvboot.tivio.language.Language;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -12,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface TvChannelRepository extends JpaRepository<TvChannel, Long> {
+public interface TvChannelRepository extends JpaRepository<TvChannel, Long>, JpaSpecificationExecutor<TvChannel> {
 
     Optional<TvChannel> findByChannelNumber(int channelNumber);
 
@@ -114,51 +115,20 @@ public interface TvChannelRepository extends JpaRepository<TvChannel, Long> {
     @Query("SELECT c FROM TvChannel c WHERE c.ip = :ip")
     List<TvChannel> findByIpAddress(@Param("ip") String ip);
 
-    @Query(value = """
-        SELECT * FROM tv_channels 
-        WHERE 
-          CASE WHEN :q IS NULL THEN true
-               ELSE LOWER(name) LIKE LOWER('%' || :q || '%')
-          END
-          AND 
-          CASE WHEN :categoryId IS NULL THEN true
-               ELSE category_id = :categoryId
-          END
-          AND 
-          CASE WHEN :languageId IS NULL THEN true
-               ELSE language_id = :languageId
-          END
-          AND 
-          CASE WHEN :isActive IS NULL THEN true
-               ELSE is_active = :isActive
-          END
-        ORDER BY channel_number
-        """,
-            countQuery = """
-        SELECT COUNT(*) FROM tv_channels 
-        WHERE 
-          CASE WHEN :q IS NULL THEN true
-               ELSE LOWER(name) LIKE LOWER('%' || :q || '%')
-          END
-          AND 
-          CASE WHEN :categoryId IS NULL THEN true
-               ELSE category_id = :categoryId
-          END
-          AND 
-          CASE WHEN :languageId IS NULL THEN true
-               ELSE language_id = :languageId
-          END
-          AND 
-          CASE WHEN :isActive IS NULL THEN true
-               ELSE is_active = :isActive
-          END
-        """,
-            nativeQuery = true)
+    @Query("""
+    SELECT c FROM TvChannel c 
+    WHERE (:q IS NULL OR c.name ILIKE CONCAT('%', :q, '%'))
+    AND (:categoryId IS NULL OR c.category.id = :categoryId)
+    AND (:languageId IS NULL OR c.language.id = :languageId)
+    AND (:isActive IS NULL OR c.active = :isActive)
+    ORDER BY c.channelNumber ASC
+    """)
     Page<TvChannel> findAllWithFilters(
             @Param("q") String q,
             @Param("categoryId") Long categoryId,
             @Param("languageId") Long languageId,
             @Param("isActive") Boolean isActive,
             Pageable pageable);
+
 }
 

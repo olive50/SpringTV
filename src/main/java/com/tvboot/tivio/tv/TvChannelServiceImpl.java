@@ -8,6 +8,7 @@ import com.tvboot.tivio.language.LanguageRepository;
 import com.tvboot.tivio.tv.dto.*;
 import com.tvboot.tivio.tv.tvcategory.TvChannelCategory;
 import com.tvboot.tivio.tv.tvcategory.TvChannelCategoryRepository;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,14 +16,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +35,7 @@ public class TvChannelServiceImpl implements TvChannelService {
     private final TvChannelCategoryRepository categoryRepository;
     private final LanguageRepository languageRepository;
 
+    @Autowired
     private FileStorageService fileStorageService;
 
     @Autowired
@@ -72,6 +72,51 @@ public class TvChannelServiceImpl implements TvChannelService {
                 pageable);
     }
 
+    @Override
+    public Page<TvChannel> getChannels(int page, int size, String q, Long categoryId, Long languageId, Boolean isActive) {
+        log.debug("Getting filtered channels - page: {}, size: {}, q: {}, categoryId: {}, languageId: {}, isActive: {}",
+                page, size, q, categoryId, languageId, isActive);
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("channelNumber").ascending());
+
+        // Utiliser Specification pour éviter les problèmes PostgreSQL
+        Specification<TvChannel> spec = createSearchSpecification(q, categoryId, languageId, isActive);
+
+        return tvChannelRepository.findAll(spec, pageable);
+    }
+
+    private Specification<TvChannel> createSearchSpecification(String q, Long categoryId, Long languageId, Boolean isActive) {
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Recherche par nom (insensible à la casse)
+            if (q != null && !q.trim().isEmpty()) {
+                String searchTerm = "%" + q.trim().toLowerCase() + "%";
+                predicates.add(criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("name")),
+                        searchTerm
+                ));
+            }
+
+            // Filtre par catégorie
+            if (categoryId != null) {
+                predicates.add(criteriaBuilder.equal(root.get("category").get("id"), categoryId));
+            }
+
+            // Filtre par langue
+            if (languageId != null) {
+                predicates.add(criteriaBuilder.equal(root.get("language").get("id"), languageId));
+            }
+
+            // Filtre par statut actif
+            if (isActive != null) {
+                predicates.add(criteriaBuilder.equal(root.get("active"), isActive));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
 
 
     @Override
@@ -91,16 +136,8 @@ public class TvChannelServiceImpl implements TvChannelService {
         return tvChannelRepository.searchChannels(search, pageable);
     }
 
-    @Override
-    public Page<TvChannel> getChannels(int page, int size, String q, Long categoryId, Long languageId, Boolean isActive) {
-        log.debug("Getting filtered channels - page: {}, size: {}, q: {}, categoryId: {}, languageId: {}, isActive: {}",
-                page, size, q, categoryId, languageId, isActive);
 
-        // Use unsorted pageable - let the native query handle sorting
-        Pageable pageable = PageRequest.of(page, size);
 
-        return tvChannelRepository.findAllWithFilters(q, categoryId, languageId, isActive, pageable);
-    }
     @Override
     @Transactional(readOnly = true)
     public long countChannels() {

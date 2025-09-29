@@ -25,6 +25,7 @@ spring:
       data-source-properties:
         ApplicationName: tvboot-iptv
         logServerErrorDetail: false
+        stringType: unspecified
 
   # ==========================================
   # JPA & HIBERNATE CONFIGURATION - FIXED FOR POSTGRESQL

@@ -43,7 +43,7 @@ public interface TvChannelMapper {
         try {
             // Méthode 1: Utiliser ServletUriComponentsBuilder (recommandée dans un contexte web)
             return ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/api/files/image/")
+                    .path("/api/files/images/")
                     .path(entity.getLogoPath())
                     .toUriString();
 
@@ -73,7 +73,7 @@ public interface TvChannelMapper {
                         baseUrl.append(contextPath);
                     }
 
-                    return baseUrl.append("/api/files/image/")
+                    return baseUrl.append("/api/files/images/")
                             .append(entity.getLogoPath())
                             .toString();
                 }
@@ -82,7 +82,7 @@ public interface TvChannelMapper {
                 System.err.println("Impossible de générer l'URL du logo: " + fallbackException.getMessage());
             }
 
-            return null;
+            return "/api/files/images/" + entity.getLogoPath();
         }
     }
 

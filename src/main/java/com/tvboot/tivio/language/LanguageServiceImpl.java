@@ -6,10 +6,12 @@ import com.tvboot.tivio.common.util.FileStorageService;
 import com.tvboot.tivio.language.dto.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,6 +29,8 @@ public class LanguageServiceImpl implements LanguageService {
 
     private final LanguageRepository languageRepository;
     private final LanguageMapper languageMapper;
+
+    @Autowired
     private final FileStorageService fileStorageService;
 
     private static final String FLAG_DIR = "language-flags";
@@ -62,13 +66,29 @@ public class LanguageServiceImpl implements LanguageService {
         Pageable pageable = PageRequest.of(page, size);
         return languageRepository.searchLanguages(search, pageable);
     }
-
+/*
     @Override
     @Transactional(readOnly = true)
     public Page<Language> getLanguages(int page, int size, String q, Boolean isAdminEnabled,
                                        Boolean isGuestEnabled, Boolean isRtl) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("displayOrder").ascending().and(Sort.by("name")));
         return languageRepository.findAllWithFilters(q, isAdminEnabled, isGuestEnabled, isRtl, pageable);
+    }*/
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Language> getLanguages(int page, int size, String searchQuery,
+                                   Boolean isAdminEnabled,
+                                   Boolean isGuestEnabled,
+                                   Boolean isRtl) {
+            Pageable pageable = PageRequest.of(page, size,
+            Sort.by(Sort.Direction.ASC, "displayOrder", "name"));
+
+            Specification<Language> spec = LanguageSpecification.withFilters(
+            searchQuery, isAdminEnabled, isGuestEnabled, isRtl
+         );
+
+        return languageRepository.findAll(spec, pageable);
     }
 
     @Override

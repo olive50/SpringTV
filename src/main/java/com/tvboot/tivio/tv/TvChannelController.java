@@ -189,29 +189,33 @@ public class TvChannelController {
      */
     @GetMapping("/search")
     public ResponseEntity<TvBootHttpResponse> searchChannels(
-     @RequestParam(defaultValue = "0") @Min(0) int page,
-    @RequestParam(defaultValue = "20")  @Min(1) @Max(100) int size,
-     @RequestParam(name = "q", required = false, defaultValue = "") String q,
-    @RequestParam(required = false) String  categoryId,
-    @RequestParam(required = false) String  languageId,
-    @RequestParam(required = false) Boolean isActive) {
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+            @RequestParam(name = "q", required = false, defaultValue = "") String q,
+            @RequestParam(required = false) String categoryId,
+            @RequestParam(required = false) String languageId,
+            @RequestParam(required = false) Boolean isActive) {
 
-        log.info("Searching channels with query: '{}' - page: {}, size: {} ...", q, page, size);
-
+        log.info("=== SEARCH REQUEST ===");
+        log.info("Query: '{}', Page: {}, Size: {}", q, page, size);
+        log.info("CategoryId: '{}', LanguageId: '{}', IsActive: {}", categoryId, languageId, isActive);
 
         String searchQuery = (q != null) ? q.trim() : null;
         if (searchQuery != null && searchQuery.isEmpty()) {
-            searchQuery = null; // treat empty string as no search
+            searchQuery = null;
         }
 
         try {
             Long categoryIdLong = parseStringToLong(categoryId);
             Long languageIdLong = parseStringToLong(languageId);
 
-            Page<TvChannel> result = tvChannelService.getChannels(page, size, searchQuery, categoryIdLong, languageIdLong, isActive);
-//            long total = channelService.countSearchChannels(q.trim());
+            log.info("Parsed - CategoryId: {}, LanguageId: {}", categoryIdLong, languageIdLong);
 
-            // Convert entities to DTOs with logo URLs
+            Page<TvChannel> result = tvChannelService.getChannels(page, size, searchQuery,
+                    categoryIdLong, languageIdLong, isActive);
+
+            log.info("Found {} channels out of {} total", result.getContent().size(), result.getTotalElements());
+
             List<TvChannelResponseDTO> channelDTOs = result.getContent().stream()
                     .map(channelMapper::toDTO)
                     .collect(Collectors.toList());
@@ -221,12 +225,13 @@ public class TvChannelController {
                     .build()
                     .addChannels(channelDTOs)
                     .addPagination(page, size, result.getTotalElements())
-                    .addData("searchQuery", q.trim())
+                    .addData("searchQuery", searchQuery)
                     .addData("resultsFound", result.getTotalElements());
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            log.error("=== SEARCH ERROR ===");
             log.error("Error searching channels with query: '{}'", q, e);
             return TvBootHttpResponse.internalServerErrorResponse(
                     "Error searching channels",
