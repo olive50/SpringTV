@@ -104,8 +104,6 @@ CREATE TABLE translations
     message_value TEXT         NOT NULL,
     created_at    TIMESTAMP WITHOUT TIME ZONE,
     updated_at    TIMESTAMP WITHOUT TIME ZONE,
-    created_by    VARCHAR(100),
-    updated_by    VARCHAR(100),
     CONSTRAINT pk_translations PRIMARY KEY (id)
 );
 
@@ -161,6 +159,26 @@ CREATE TABLE weblinks
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMP WITHOUT TIME ZONE,
     CONSTRAINT pk_weblinks PRIMARY KEY (id)
+);
+-- Create amenities table for Hotel New Day IPTV System
+
+CREATE TABLE amenities (
+                           id BIGSERIAL PRIMARY KEY,
+                           name VARCHAR(255) NOT NULL,
+                           short_description VARCHAR(200),
+                           html_content TEXT,
+                           image_url VARCHAR(500),
+                           thumbnail_url VARCHAR(500),
+                           available BOOLEAN NOT NULL DEFAULT true,
+                           category VARCHAR(50) NOT NULL,
+                           location VARCHAR(255),
+                           contact_phone VARCHAR(50),
+                           contact_extension VARCHAR(20),
+                           opening_time TIME,
+                           closing_time TIME,
+                           display_order INTEGER DEFAULT 0,
+                           show_in_menu BOOLEAN DEFAULT true,
+                           css_style TEXT
 );
 
 ALTER TABLE guests

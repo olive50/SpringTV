@@ -1,4 +1,4 @@
-package com.tvboot.tivio.hotel.resource;
+package com.tvboot.tivio.smartapp.shortcut;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;

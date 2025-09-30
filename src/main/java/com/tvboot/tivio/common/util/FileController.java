@@ -63,7 +63,7 @@ public class FileController {
             @ApiResponse(responseCode = "403", description = "🚫 Type de fichier non autorisé"),
             @ApiResponse(responseCode = "400", description = "📋 Chemin invalide")
     })
-    @GetMapping("/images/**")
+    @GetMapping("/image/**")
     public ResponseEntity<Resource> getImage(HttpServletRequest request) {
         return serveFile(request, ALLOWED_IMAGE_EXTENSIONS, "image");
     }

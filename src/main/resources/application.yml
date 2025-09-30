@@ -4,7 +4,6 @@ spring:
 
   profiles:
     active: dev
-
   # ==========================================
   # DATABASE CONFIGURATION - FIXED FOR POSTGRESQL
   # ==========================================
@@ -112,6 +111,7 @@ server:
     include-exception: true
   compression:
     enabled: false
+  address: localhost
 
 # ==========================================
 # ACTUATOR CONFIGURATION

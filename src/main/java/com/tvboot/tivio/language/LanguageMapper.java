@@ -59,7 +59,7 @@ public interface LanguageMapper {
         try {
             // Méthode 1: Utiliser ServletUriComponentsBuilder (recommandée dans un contexte web)
             return ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/api/files/images/")
+                    .path("/api/files/image/")
                     .path(flagPath)
                     .toUriString();
 
@@ -90,7 +90,7 @@ public interface LanguageMapper {
                         baseUrl.append(contextPath);
                     }
 
-                    return baseUrl.append("/api/files/images/")
+                    return baseUrl.append("/api/files/image/")
                             .append(flagPath)
                             .toString();
                 }
@@ -101,7 +101,7 @@ public interface LanguageMapper {
             }
 
             // Méthode 3: Dernier fallback - URL relative
-            return "/api/files/images/" + flagPath;
+            return "/api/files/image/" + flagPath;
         }
     }
 

@@ -62,18 +62,7 @@ public class Translation {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Column(name = "created_by", length = 100)
-    private String createdBy;
 
-    @Column(name = "updated_by", length = 100)
-    private String updatedBy;
-
-    // Helper constructor for easy creation
-    public Translation(Language language, String messageKey, String messageValue) {
-        this.language = language;
-        this.messageKey = messageKey;
-        this.messageValue = messageValue;
-    }
 
     // Helper method to get language code (useful for API responses)
     public String getLanguageCode() {
