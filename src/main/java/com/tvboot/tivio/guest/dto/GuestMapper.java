@@ -77,7 +77,6 @@ public interface GuestMapper {
                 .id(room.getId())
                 .roomNumber(room.getRoomNumber())
                 .roomType(room.getRoomType())
-                .floorNumber(room.getFloorNumber())
                 .build();
     }
 

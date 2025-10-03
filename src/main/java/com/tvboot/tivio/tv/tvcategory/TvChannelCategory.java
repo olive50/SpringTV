@@ -23,7 +23,4 @@ public class TvChannelCategory {
     @Column(name = "name", unique = true, nullable = false)
     private String name;
 
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore
-    private List<TvChannel> channels = new ArrayList<>();
 }

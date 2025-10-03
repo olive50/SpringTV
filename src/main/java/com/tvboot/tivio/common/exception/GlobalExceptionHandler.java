@@ -316,11 +316,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
 
-    // Méthodes utilitaires privées
-    private String generateTraceId() {
-        return UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase();
-    }
-
     private ErrorResponse.ValidationError mapFieldError(FieldError fieldError) {
         return ErrorResponse.ValidationError.builder()
                 .field(fieldError.getField())
@@ -338,4 +333,13 @@ public class GlobalExceptionHandler {
                 .code(violation.getMessageTemplate())
                 .build();
     }
+
+// ==========================================
+// HELPER METHODS
+// ==========================================
+
+    private String generateTraceId() {
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase();
+    }
+
 }

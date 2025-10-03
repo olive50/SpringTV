@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -56,7 +57,12 @@ public class RoomController {
 
     @GetMapping
     public ResponseEntity<TvBootHttpResponse> getAllRooms(
-            @PageableDefault(size = 5) Pageable pageable) {
+            @PageableDefault(
+                    page = 0,
+                    size = 23,
+                    sort = {"floorNumber", "roomNumber"},
+                    direction = Sort.Direction.ASC
+            ) Pageable pageable) {
         Page<RoomResponse> responsePage = roomService.getAllRooms(pageable);
         TvBootHttpResponse httpResponse = TvBootHttpResponse.success()
                 .message("Rooms retrieved successfully")

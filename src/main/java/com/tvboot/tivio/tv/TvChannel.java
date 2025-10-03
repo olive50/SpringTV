@@ -61,6 +61,7 @@ public class TvChannel {
     @Column(name = "is_available", nullable = true)
     private Boolean available = true;
 
+   
     @Column(name = "sort_order", nullable = true)
     private int sortOrder = 0;
 

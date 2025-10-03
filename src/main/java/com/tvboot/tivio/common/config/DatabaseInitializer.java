@@ -424,7 +424,7 @@ public class DatabaseInitializer implements CommandLineRunner {
 
         try {
             initializeSampleChannels();
-            initializeSampleRooms();
+           // initializeSampleRooms();
             log.info("✅ Business data initialization completed");
         } catch (Exception e) {
             log.error("Error in business data initialization: {}", e.getMessage(), e);
@@ -544,7 +544,7 @@ public class DatabaseInitializer implements CommandLineRunner {
 
                     Room.builder()
                             .roomNumber("201")
-                            .roomType(Room.RoomType.DELUXE)
+                            .roomType(Room.RoomType.JUNIOR_DELUXE)
                             .floorNumber(2)
                             .building("Main Building")
                             .capacity(3)
@@ -555,7 +555,7 @@ public class DatabaseInitializer implements CommandLineRunner {
 
                     Room.builder()
                             .roomNumber("301")
-                            .roomType(Room.RoomType.SUITE)
+                            .roomType(Room.RoomType.DELUXE_SUITE)
                             .floorNumber(3)
                             .building("Main Building")
                             .capacity(4)

@@ -1,7 +1,9 @@
 package com.tvboot.tivio.guest;
 
+import com.tvboot.tivio.common.enumeration.CheckinStatus;
 import com.tvboot.tivio.common.enumeration.Gender;
 import com.tvboot.tivio.common.enumeration.LoyaltyLevel;
+import com.tvboot.tivio.room.Room;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,7 +18,12 @@ import java.util.Optional;
 
 @Repository
 public interface GuestRepository extends JpaRepository<Guest, Long> {
+    Optional<Guest> findByRoom(Room room);
 
+    List<Guest> findByCheckinStatus(CheckinStatus status);
+
+    @Query("SELECT g FROM Guest g WHERE g.checkinStatus = 'CHECKED_IN' AND g.room.id = :roomId")
+    Optional<Guest> findCheckedInGuestByRoomId(@Param("roomId") Long roomId);
     // ==================== BASIC FINDERS ====================
     Optional<Guest> findByPmsGuestId(String pmsGuestId);
     Optional<Guest> findByEmail(String email);

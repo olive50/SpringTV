@@ -1,6 +1,7 @@
 package com.tvboot.tivio.guest;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.tvboot.tivio.common.enumeration.CheckinStatus;
 import com.tvboot.tivio.common.enumeration.Gender;
 import com.tvboot.tivio.common.enumeration.LoyaltyLevel;
 import com.tvboot.tivio.language.Language;
@@ -26,8 +27,11 @@ public class Guest {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "pms_guest_id", unique = true, nullable = false)
+    @Column(name = "pms_guest_id", unique = true)
     private String pmsGuestId; // Hotel-specific guest ID
+
+    @Column(name = "title")
+    private String title ;
 
     @Column(name = "first_name", nullable = false)
     private String firstName;
@@ -62,7 +66,24 @@ public class Guest {
     @Enumerated(EnumType.STRING)
     private LoyaltyLevel loyaltyLevel;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "checkin_status")
+    private CheckinStatus checkinStatus = CheckinStatus.CHECKED_OUT;
 
+    @Column(name = "checkin_time")
+    private LocalDateTime checkinTime;
+
+    @Column(name = "checkout_time")
+    private LocalDateTime checkoutTime;
+
+    // Business methods
+    public boolean isCheckedIn() {
+        return checkinStatus == CheckinStatus.CHECKED_IN;
+    }
+
+    public boolean canCheckIn() {
+        return checkinStatus != CheckinStatus.CHECKED_IN;
+    }
 
 
     @ManyToOne(fetch = FetchType.LAZY)

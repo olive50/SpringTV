@@ -43,9 +43,10 @@ public class SecurityConfig {
             "/api/test/public",
             "/api/test/health",
             "/api/test/info",
-            "/api/admin/users/**", // Allow user verification endpoints (remove in production)
             "/h2-console/**",
             "/error",
+            "/api/checkin/room-status/**", // arevoir
+            "/api/checkin/room/**", //just test
 
             // Swagger/OpenAPI endpoints
             "/swagger-ui/**",
