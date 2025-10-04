@@ -1,3 +1,7 @@
 /target/
 /logs/
 /uploads/
+/.idea/
+.env
+.env.local
+/*.log

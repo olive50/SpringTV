@@ -154,7 +154,7 @@ logging:
 # APP CUSTOM CONFIGURATION
 # ==========================================
 app:
-  jwtSecret: myVeryLongSecretKeyForDevelopmentThatIsAtLeast32CharactersLong
+  jwtSecret: ${JWT_SECRET}
   jwtExpirationMs: 86400000
   upload:
     logos:

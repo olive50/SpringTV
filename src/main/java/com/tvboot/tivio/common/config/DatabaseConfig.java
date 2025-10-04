@@ -26,10 +26,10 @@ public class DatabaseConfig {
     @Value("${spring.datasource.url}")
     private String jdbcUrl;
 
-    @Value("${spring.datasource.username}")
+    @Value("${DB_USERNAME:postgres}")
     private String username;
 
-    @Value("${spring.datasource.password}")
+    @Value("${DB_PASSWORD:root}")
     private String password;
 
     @Value("${spring.datasource.driver-class-name}")
