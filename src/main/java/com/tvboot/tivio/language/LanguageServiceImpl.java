@@ -33,7 +33,7 @@ public class LanguageServiceImpl implements LanguageService {
     @Autowired
     private final FileStorageService fileStorageService;
 
-    private static final String FLAG_DIR = "language-flags";
+    private static final String FLAG_DIR = "image/flags";
 
     @Override
     @Transactional(readOnly = true)
@@ -66,14 +66,7 @@ public class LanguageServiceImpl implements LanguageService {
         Pageable pageable = PageRequest.of(page, size);
         return languageRepository.searchLanguages(search, pageable);
     }
-/*
-    @Override
-    @Transactional(readOnly = true)
-    public Page<Language> getLanguages(int page, int size, String q, Boolean isAdminEnabled,
-                                       Boolean isGuestEnabled, Boolean isRtl) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("displayOrder").ascending().and(Sort.by("name")));
-        return languageRepository.findAllWithFilters(q, isAdminEnabled, isGuestEnabled, isRtl, pageable);
-    }*/
+
 
     @Override
     @Transactional(readOnly = true)
@@ -164,14 +157,15 @@ public class LanguageServiceImpl implements LanguageService {
         Language language = languageMapper.toEntity(createDTO);
 
         if (flagFile != null && !flagFile.isEmpty()) {
+
             String customFilename = fileStorageService.generateLanguageFlagFilename(
-                    createDTO.getName(),
-                    createDTO.getIso6391(),
+                    language.getIso6391(),
                     flagFile.getOriginalFilename()
             );
 
+
             String flagPath = fileStorageService.storeFileWithCustomName(flagFile, FLAG_DIR, customFilename);
-            language.setFlagPath(flagPath);
+            language.setFlagPath(customFilename);
             log.info("Saved flag with custom name: {}", flagPath);
         }
 
@@ -184,7 +178,7 @@ public class LanguageServiceImpl implements LanguageService {
         Language language = languageRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Language", "id", id));
 
-        String oldFlagPath = language.getFlagPath();
+        String oldFlagPath = FLAG_DIR+language.getFlagPath();
 
         updateLanguageFields(language, updateDTO, id);
 
@@ -194,13 +188,14 @@ public class LanguageServiceImpl implements LanguageService {
             }
 
             String customFilename = fileStorageService.generateLanguageFlagFilename(
-                    language.getName(),
                     language.getIso6391(),
                     flagFile.getOriginalFilename()
             );
 
+
+
             String newFlagPath = fileStorageService.storeFileWithCustomName(flagFile, FLAG_DIR, customFilename);
-            language.setFlagPath(newFlagPath);
+            language.setFlagPath(customFilename);
         }
 
         Language savedLanguage = languageRepository.save(language);

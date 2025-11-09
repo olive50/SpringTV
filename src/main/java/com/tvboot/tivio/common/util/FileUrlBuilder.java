@@ -21,6 +21,6 @@ public class FileUrlBuilder {
         if (imagePath == null || imagePath.isEmpty()) {
             return null;
         }
-        return protocol + "://" + serverAddress + ":" + serverPort + "/api/files/image/" + imagePath;
+        return protocol + "://" + serverAddress + ":" + serverPort + "/api/v1/files/image/" + imagePath;
     }
 }

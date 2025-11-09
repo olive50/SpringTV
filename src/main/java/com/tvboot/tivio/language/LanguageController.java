@@ -21,7 +21,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/languages")
+@RequestMapping("/languages")
 @RequiredArgsConstructor
 @Slf4j
 @Validated

@@ -44,6 +44,7 @@ public class TvBootHttpResponse {
                 .timeStamp(LocalDateTime.now());
     }
 
+
     public static TvBootHttpResponseBuilder<?, ?> error(HttpStatus status, String message) {
         return TvBootHttpResponse.builder()
                 .statusCode(status.value())

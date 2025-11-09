@@ -8,6 +8,8 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @Slf4j
@@ -18,7 +20,9 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableJpaRepositories(basePackages = "com.tvboot.tivio")  // Scan for repositories
 @EntityScan(basePackages = "com.tvboot.tivio")             // Scan for entities
 @EnableJpaAuditing                                          // Enable auditing for @CreatedBy, @LastModifiedBy
-@EnableTransactionManagement                                // Enable transaction management
+@EnableTransactionManagement
+//@EnableScheduling  // ✅ AJOUTER CETTE ANNOTATION
+//@EnableAsync       // ✅ POUR LES TÂCHES ASYNCHRONES// Enable transaction management
 public class TivioApplication {
 
     public static void main(String[] args) {

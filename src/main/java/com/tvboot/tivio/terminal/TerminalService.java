@@ -1,7 +1,7 @@
 package com.tvboot.tivio.terminal;
 
 import com.tvboot.tivio.common.enumeration.DeviceType;
-import com.tvboot.tivio.common.enumeration.TerminalStatus;
+import com.tvboot.tivio.common.enumeration.LocationType;
 import com.tvboot.tivio.common.exception.ResourceNotFoundException;
 import com.tvboot.tivio.room.Room;
 import com.tvboot.tivio.room.RoomRepository;
@@ -64,31 +64,25 @@ public class TerminalService {
 
     public TerminalDto createTerminal(TerminalCreateRequest request) {
         log.info("Creating new terminal: {}", request.getTerminalCode());
-
         // Validate uniqueness
         validateTerminalUniqueness(request);
+        System.out.println(request);
+        Terminal terminal = terminalMapper.toEntity(request);
 
-        Terminal terminal = Terminal.builder()
-                .terminalCode(request.getTerminalCode())
-                .deviceType(request.getDeviceType())
-                .brand(request.getBrand())
-                .model(request.getModel())
-                .macAddress(request.getMacAddress().toUpperCase())
-                .ipAddress(request.getIpAddress())
-                .location(request.getLocation())
-                .firmwareVersion(request.getFirmwareVersion())
-                .serialNumber(request.getSerialNumber())
-                .status(TerminalStatus.INACTIVE)
-                .lastSeen(LocalDateTime.now())
-                .isOnline(false)
-                .build();
-
-        // Set room if provided
-        if (request.getRoomId() != null) {
-            Room room = roomRepository.findById(request.getRoomId())
-                    .orElseThrow(() -> new EntityNotFoundException("Room not found with ID: " + request.getRoomId()));
+        // Handle location association
+        if ("ROOM".equalsIgnoreCase(request.getLocationType())) {
+            Room room = roomRepository.findByRoomNumber(request.getLocationIdentifier())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Room not found with number: " + request.getLocationIdentifier()
+                    ));
             terminal.setRoom(room);
+        } else if ("LOBBY".equalsIgnoreCase(request.getLocationType())) {
+            // Example: handle another type (optional)
+            // Lobby lobby = lobbyRepository.findByIdentifier(request.getLocationIdentifier())
+            //         .orElseThrow(() -> new ResourceNotFoundException("Lobby not found"));
+            // device.setLobby(lobby);
         }
+
 
         Terminal savedTerminal = terminalRepository.save(terminal);
 
@@ -105,58 +99,8 @@ public class TerminalService {
         Terminal terminal = terminalRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Terminal not found with ID: " + id));
 
-        // Update fields if provided
-        if (request.getTerminalCode() != null) {
-            validateTerminalIdUniqueness(request.getTerminalCode(), id);
-            terminal.setTerminalCode(request.getTerminalCode());
-        }
+        terminalMapper.updateFromRequest(terminal, request);
 
-        if (request.getDeviceType() != null) {
-            terminal.setDeviceType(request.getDeviceType());
-        }
-
-        if (request.getBrand() != null) {
-            terminal.setBrand(request.getBrand());
-        }
-
-        if (request.getModel() != null) {
-            terminal.setModel(request.getModel());
-        }
-
-        if (request.getMacAddress() != null) {
-            validateMacAddressUniqueness(request.getMacAddress(), id);
-            terminal.setMacAddress(request.getMacAddress().toUpperCase());
-        }
-
-        if (request.getIpAddress() != null) {
-            validateIpAddressUniqueness(request.getIpAddress(), id);
-            terminal.setIpAddress(request.getIpAddress());
-        }
-
-        if (request.getStatus() != null) {
-            terminal.setStatus(request.getStatus());
-        }
-
-        if (request.getLocation() != null) {
-            terminal.setLocation(request.getLocation());
-        }
-
-        if (request.getFirmwareVersion() != null) {
-            terminal.setFirmwareVersion(request.getFirmwareVersion());
-        }
-
-        if (request.getSerialNumber() != null) {
-            terminal.setSerialNumber(request.getSerialNumber());
-        }
-
-        // Update room
-        if (request.getRoomId() != null) {
-            Room room = roomRepository.findById(request.getRoomId())
-                    .orElseThrow(() -> new EntityNotFoundException("Room not found with ID: " + request.getRoomId()));
-            terminal.setRoom(room);
-        } else if (request.getRoomId() == null) {
-            terminal.setRoom(null);
-        }
 
         Terminal savedTerminal = terminalRepository.save(terminal);
 
@@ -198,12 +142,12 @@ public class TerminalService {
 
             if (result.getSuccess()) {
                 terminal.setLastSeen(LocalDateTime.now());
-                if (terminal.getStatus() == TerminalStatus.OFFLINE) {
-                    terminal.setStatus(TerminalStatus.ACTIVE);
+                if (!terminal.getIsOnline()) {
+                    terminal.setIsOnline(true);
                 }
             } else {
-                if (terminal.getStatus() == TerminalStatus.ACTIVE) {
-                    terminal.setStatus(TerminalStatus.OFFLINE);
+                if (terminal.getIsOnline()) {
+                    terminal.setIsOnline(false);
                 }
             }
 
@@ -231,63 +175,17 @@ public class TerminalService {
 
         // In a real implementation, this would send a reboot command to the terminal
         // For now, we'll simulate by changing status
-        terminal.setStatus(TerminalStatus.MAINTENANCE);
+
         terminalRepository.save(terminal);
 
         // Simulate reboot process (in real app, this would be handled by the terminal)
         CompletableFuture.delayedExecutor(5, TimeUnit.SECONDS).execute(() -> {
-            terminal.setStatus(TerminalStatus.ACTIVE);
+
             terminal.setLastSeen(LocalDateTime.now());
             terminalRepository.save(terminal);
         });
     }
 
-    @Transactional(readOnly = true)
-    public TerminalStatsDto getTerminalStatistics() {
-        Map<String, Long> statusCounts = Arrays.stream(TerminalStatus.values())
-                .collect(Collectors.toMap(
-                        Enum::name,
-                        terminalRepository::countByStatus
-                ));
-
-        Map<String, Long> deviceTypeCounts = terminalRepository.countByDeviceType()
-                .stream()
-                .collect(Collectors.toMap(
-                        row -> ((DeviceType) row[0]).name(),
-                        row -> (Long) row[1]
-                ));
-
-        Map<String, Long> locationCounts = terminalRepository.countByLocation()
-                .stream()
-                .collect(Collectors.toMap(
-                        row -> (String) row[0],
-                        row -> (Long) row[1]
-                ));
-
-        return TerminalStatsDto.builder()
-                .total(terminalRepository.count())
-                .active(statusCounts.getOrDefault(TerminalStatus.ACTIVE.name(), 0L))
-                .inactive(statusCounts.getOrDefault(TerminalStatus.INACTIVE.name(), 0L))
-                .offline(statusCounts.getOrDefault(TerminalStatus.OFFLINE.name(), 0L))
-                .maintenance(statusCounts.getOrDefault(TerminalStatus.MAINTENANCE.name(), 0L))
-                .faulty(statusCounts.getOrDefault(TerminalStatus.FAULTY.name(), 0L))
-                .byDeviceType(deviceTypeCounts)
-                .byLocation(locationCounts)
-                .averageUptime(terminalRepository.getAverageUptime())
-                .build();
-    }
-
-    public void updateTerminalHeartbeat(String macAddress) {
-        terminalRepository.findByMacAddress(macAddress.toUpperCase())
-                .ifPresent(terminal -> {
-                    terminal.setLastSeen(LocalDateTime.now());
-                    terminal.setIsOnline(true);
-                    if (terminal.getStatus() == TerminalStatus.OFFLINE) {
-                        terminal.setStatus(TerminalStatus.ACTIVE);
-                    }
-                    terminalRepository.save(terminal);
-                });
-    }
 
     @Scheduled(fixedRate = 60000) // Run every minute
     public void checkTerminalStatus() {
@@ -295,8 +193,8 @@ public class TerminalService {
         List<Terminal> inactiveTerminals = terminalRepository.findInactiveTerminals(threshold);
 
         for (Terminal terminal : inactiveTerminals) {
-            if (terminal.getStatus() == TerminalStatus.ACTIVE) {
-                terminal.setStatus(TerminalStatus.OFFLINE);
+            if (terminal.getIsOnline()) {
+                terminal.setIsOnline(false);
                 terminal.setIsOnline(false);
                 terminalRepository.save(terminal);
                 log.warn("Terminal {} marked as offline due to inactivity", terminal.getTerminalCode());
@@ -359,26 +257,95 @@ public class TerminalService {
                 predicates.add(searchPredicate);
             }
 
-            if (criteria.getStatus() != null) {
-                predicates.add(criteriaBuilder.equal(root.get("status"), criteria.getStatus()));
+            if (criteria.getActive() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("status"), criteria.getIsActive()));
             }
 
             if (criteria.getDeviceType() != null) {
                 predicates.add(criteriaBuilder.equal(root.get("deviceType"), criteria.getDeviceType()));
             }
 
-            if (criteria.getLocation() != null && !criteria.getLocation().trim().isEmpty()) {
-                predicates.add(criteriaBuilder.like(
-                        criteriaBuilder.lower(root.get("location")),
-                        "%" + criteria.getLocation().toLowerCase() + "%"
-                ));
-            }
 
-            if (criteria.getRoomId() != null) {
-                predicates.add(criteriaBuilder.equal(root.get("room").get("id"), criteria.getRoomId()));
+
+            if (criteria.getLocationId() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("room").get("id"), criteria.getLocationId()));
             }
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
     }
+
+    public TerminalStatsDto  getTerminalStatistics(){
+        return new TerminalStatsDto();
+    }
+
+    public void updateTerminalHeartbeat(String macAddress) {
+        terminalRepository.findByMacAddress(macAddress.toUpperCase())
+                .ifPresent(terminal -> {
+                    terminal.setLastSeen(LocalDateTime.now());
+                    terminal.setIsOnline(true);
+                    if (!terminal.getIsOnline()) {
+                        terminal.setIsOnline(true);
+                    }
+                    terminalRepository.save(terminal);
+                });
+    }
+
+    public void assignTerminalToRoom(Long terminalId, Long roomId) {
+        Terminal terminal = terminalRepository.findById(terminalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Terminal not found"));
+
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found"));
+
+        terminal.setLocationType(LocationType.ROOM);
+        terminal.setLocationIdentifier(room.getRoomNumber());
+
+        terminalRepository.save(terminal);
+        log.info("Terminal {} assigned to room {}", terminal.getTerminalCode(), room.getRoomNumber());
+    }
+
+    public void assignTerminalToLocation(Long terminalId, LocationType locationType, String locationIdentifier) {
+        Terminal terminal = terminalRepository.findById(terminalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Terminal not found"));
+
+        terminal.setLocationType(locationType);
+        terminal.setLocationIdentifier(locationIdentifier);
+
+        terminalRepository.save(terminal);
+        log.info("Terminal {} assigned to {} {}",
+                terminal.getTerminalCode(), locationType, locationIdentifier);
+    }
+
+    public List<TerminalDto> getTerminalsByLocation(LocationType locationType, String locationIdentifier) {
+        List<Terminal> terminals = terminalRepository
+                .findByLocationTypeAndLocationIdentifier(locationType, locationIdentifier);
+
+        return terminals.stream()
+                .map(terminalMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Finds a Terminal by ID and sets its active status to true.
+     * @param terminalId The ID of the terminal to activate.
+     * @return The activated Terminal object.
+     * @throws RuntimeException if the terminal is not found.
+     */
+    @Transactional // Ensures the operation is atomic and the change is committed
+    public Terminal activateTerminal(Long terminalId) {
+        Terminal terminal = terminalRepository.findById(terminalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Terminal with ID " + terminalId + " not found."));
+
+        // Set the active field to true
+        terminal.setActive(true);
+
+        // Save the updated terminal back to the database (JPA handles the update)
+        // Note: With @Transactional, often the save is not explicitly needed as the entity is managed,
+        // but explicitly calling save is safer and clearer.
+        return terminalRepository.save(terminal);
+    }
+
+
+
 }

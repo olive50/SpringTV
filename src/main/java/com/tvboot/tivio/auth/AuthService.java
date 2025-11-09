@@ -4,7 +4,7 @@ import com.tvboot.tivio.auth.dto.JwtResponse;
 import com.tvboot.tivio.auth.dto.LoginRequest;
 import com.tvboot.tivio.auth.dto.MessageResponse;
 import com.tvboot.tivio.auth.dto.SignupRequest;
-import com.tvboot.tivio.common.security.JwtUtils;
+import com.tvboot.tivio.config.security.JwtUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

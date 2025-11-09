@@ -1,5 +1,6 @@
 package com.tvboot.tivio.auth;
 
+import com.tvboot.tivio.common.enumeration.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,7 +15,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     Optional<User> findByUsernameOrEmail(String username, String email);
 
-    List<User> findByRole(User.Role role);
+    List<User> findByRole(Role role);
     List<User> findByIsActiveTrue();
 
     @Query("SELECT u FROM User u WHERE u.lastLogin < :date")

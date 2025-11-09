@@ -3,6 +3,8 @@ package com.tvboot.tivio.terminal.dto;
 import com.tvboot.tivio.room.Room;
 import com.tvboot.tivio.room.RoomMapper;
 import com.tvboot.tivio.terminal.Terminal;
+import com.tvboot.tivio.tvchannel.TvChannel;
+import com.tvboot.tivio.tvchannel.dto.TvChannelUpdateDTO;
 import org.mapstruct.*;
 
 import java.util.List;
@@ -29,32 +31,17 @@ public interface TerminalMapper {
     List<TerminalConnectivityDto> toConnectivityDtoList(List<Terminal> terminals);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "status", constant = "INACTIVE")
     @Mapping(target = "lastSeen", expression = "java(java.time.LocalDateTime.now())")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-
     @Mapping(target = "uptime", ignore = true)
-
     @Mapping(target = "isOnline", constant = "false")
-    @Mapping(target = "room", source = "roomId", qualifiedByName = "roomIdToRoom")
-    Terminal fromCreateRequest(TerminalCreateRequest request);
+    Terminal toEntity(TerminalCreateRequest request);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "lastSeen", ignore = true)
-    @Mapping(target = "room", source = "roomId", qualifiedByName = "roomIdToRoom")
     void updateFromRequest(@MappingTarget Terminal terminal, TerminalUpdateRequest request);
-
-    // Helper methods
-    @Named("roomIdToRoom")
-    default Room roomIdToRoom(Long roomId) {
-        if (roomId == null) {
-            return null;
-        }
-        return Room.builder().id(roomId).build();
-    }
-
 
 }

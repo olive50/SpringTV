@@ -11,7 +11,7 @@ spring:
   # DATABASE CONFIGURATION (DEV) - FIXED FOR POSTGRESQL
   # ==========================================
   datasource:
-    url: jdbc:postgresql://localhost:5432/tvboot_db?ApplicationName=tvboot-dev&stringtype=unspecified
+    url: jdbc:postgresql://localhost:5432/tvdb?ApplicationName=tvboot-dev&stringtype=unspecified
     hikari:
       pool-name: TvbootHikariPoolDev
       minimum-idle: 3

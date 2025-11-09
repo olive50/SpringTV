@@ -1,6 +1,7 @@
 package com.tvboot.tivio.auth.dto;
 
 import com.tvboot.tivio.auth.User;
+import com.tvboot.tivio.common.enumeration.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -32,5 +33,5 @@ public class SignupRequest {
     private String lastName;
 
     @NotNull(message = "Role is required")
-    private User.Role role;
+    private Role role;
 }

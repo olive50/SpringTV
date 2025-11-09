@@ -1,7 +1,10 @@
 package com.tvboot.tivio.translation;
 
+import com.tvboot.tivio.common.exception.ResourceNotFoundException;
 import com.tvboot.tivio.language.Language;
 import com.tvboot.tivio.language.LanguageRepository;
+import com.tvboot.tivio.translation.dto.TranslationDtoWithCode;
+import com.tvboot.tivio.translation.dto.TranslationMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -19,9 +22,11 @@ public class TranslationService {
 
     private final TranslationRepository translationRepository;
     private final LanguageRepository languageRepository;
+    private final TranslationMapper translationMapper;
 
     /**
      * Get all translations for a language by ISO code (cached for performance)
+     * Returns Map<String, String> for TV client consumption
      */
     @Cacheable(value = "translations", key = "#languageCode")
     @Transactional(readOnly = true)
@@ -33,7 +38,7 @@ public class TranslationService {
 
         if (translations.isEmpty()) {
             log.warn("No translations found for language: {}", languageCode);
-            throw new RuntimeException("No translations found for language: " + languageCode);
+            throw new ResourceNotFoundException("Translation", "languageCode", languageCode);
         }
 
         Map<String, String> translationMap = translations.stream()
@@ -64,7 +69,7 @@ public class TranslationService {
                 .findByLanguageId(languageId);
 
         if (translations.isEmpty()) {
-            throw new RuntimeException("No translations found for language ID: " + languageId);
+            throw new ResourceNotFoundException("Translation", "languageId", languageId);
         }
 
         return translations.stream()
@@ -73,6 +78,52 @@ public class TranslationService {
                         Translation::getMessageValue,
                         (existing, replacement) -> existing
                 ));
+    }
+
+    /**
+     * Get translations as DTOs with language code (for admin/management)
+     */
+    @Cacheable(value = "translationsDto", key = "#languageCode")
+    @Transactional(readOnly = true)
+    public List<TranslationDtoWithCode> getTranslationsAsDtoList(String languageCode) {
+        log.debug("Loading translation DTOs for language: {}", languageCode);
+
+        List<Translation> translations = translationRepository
+                .findByLanguageCode(languageCode);
+
+        if (translations.isEmpty()) {
+            log.warn("No translations found for language: {}", languageCode);
+            throw new ResourceNotFoundException("Translation", "languageCode", languageCode);
+        }
+
+        List<TranslationDtoWithCode> dtoList = translationMapper.toDtoList(translations);
+        log.info("Loaded {} translation DTOs for language: {}", dtoList.size(), languageCode);
+
+        return dtoList;
+    }
+
+    /**
+     * Get all translations across all languages as DTOs (admin function)
+     */
+    @Transactional(readOnly = true)
+    public List<TranslationDtoWithCode> getAllTranslationsAsDto() {
+        log.debug("Loading all translations as DTOs");
+        List<Translation> allTranslations = translationRepository.findAll();
+        return translationMapper.toDtoList(allTranslations);
+    }
+
+    /**
+     * Get a single translation by language code and key
+     */
+    @Transactional(readOnly = true)
+    public TranslationDtoWithCode getTranslationDto(String languageCode, String messageKey) {
+        Translation translation = translationRepository
+                .findByLanguage_Iso6391AndMessageKey(languageCode, messageKey)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        String.format("Translation not found for key '%s' in language '%s'", messageKey, languageCode)
+                ));
+
+        return translationMapper.toDto(translation);
     }
 
     /**
@@ -89,6 +140,10 @@ public class TranslationService {
         List<Translation> translations = translationRepository
                 .findByLanguageCode(languageCode);
 
+        if (translations.isEmpty()) {
+            throw new ResourceNotFoundException("Translation", "languageCode", languageCode);
+        }
+
         String prefix = namespace + ".";
 
         Map<String, String> namespaceTranslations = translations.stream()
@@ -98,6 +153,12 @@ public class TranslationService {
                         Translation::getMessageValue
                 ));
 
+        if (namespaceTranslations.isEmpty()) {
+            throw new ResourceNotFoundException(
+                    String.format("No translations found for namespace '%s' in language '%s'", namespace, languageCode)
+            );
+        }
+
         log.info("Loaded {} translations for namespace: {}",
                 namespaceTranslations.size(), namespace);
 
@@ -105,18 +166,48 @@ public class TranslationService {
     }
 
     /**
-     * Admin function: Create or update a single translation
+     * Admin function: Create or update a single translation using DTO
      */
     @Transactional
-    @CacheEvict(value = "translations", allEntries = true)
+    @CacheEvict(value = {"translations", "translationsDto"}, allEntries = true)
+    public TranslationDtoWithCode createOrUpdateTranslation(TranslationDtoWithCode dto) {
+
+        Language language = languageRepository.findByIso6391(dto.getIso6391())
+                .orElseThrow(() -> new ResourceNotFoundException("Language", "iso6391", dto.getIso6391()));
+
+        Optional<Translation> existing = translationRepository
+                .findByLanguageIdAndMessageKey(language.getId(), dto.getMessageKey());
+
+        Translation translation;
+        if (existing.isPresent()) {
+            translation = existing.get();
+            translation.setMessageValue(dto.getMessageValue());
+            log.info("Updated translation: {} = {}", dto.getMessageKey(), dto.getMessageValue());
+        } else {
+            translation = Translation.builder()
+                    .language(language)
+                    .messageKey(dto.getMessageKey())
+                    .messageValue(dto.getMessageValue())
+                    .build();
+            log.info("Created translation: {} = {}", dto.getMessageKey(), dto.getMessageValue());
+        }
+
+        translation = translationRepository.save(translation);
+        return translationMapper.toDto(translation);
+    }
+
+    /**
+     * Admin function: Create or update a single translation (legacy method)
+     */
+    @Transactional
+    @CacheEvict(value = {"translations", "translationsDto"}, allEntries = true)
     public Translation createOrUpdateTranslation(
             String languageCode,
             String key,
             String value) {
 
         Language language = languageRepository.findByIso6391(languageCode)
-                .orElseThrow(() -> new RuntimeException(
-                        "Language not found: " + languageCode));
+                .orElseThrow(() -> new ResourceNotFoundException("Language", "iso6391", languageCode));
 
         Optional<Translation> existing = translationRepository
                 .findByLanguageIdAndMessageKey(language.getId(), key);
@@ -141,14 +232,13 @@ public class TranslationService {
      * Admin function: Bulk import translations for a language
      */
     @Transactional
-    @CacheEvict(value = "translations", allEntries = true)
+    @CacheEvict(value = {"translations", "translationsDto"}, allEntries = true)
     public void bulkImportTranslations(
             String languageCode,
             Map<String, String> translations) {
 
         Language language = languageRepository.findByIso6391(languageCode)
-                .orElseThrow(() -> new RuntimeException(
-                        "Language not found: " + languageCode));
+                .orElseThrow(() -> new ResourceNotFoundException("Language", "iso6391", languageCode));
 
         List<Translation> translationEntities = translations.entrySet().stream()
                 .map(entry -> Translation.builder()
@@ -162,5 +252,24 @@ public class TranslationService {
 
         log.info("Bulk imported {} translations for language: {}",
                 translations.size(), languageCode);
+    }
+
+    /**
+     * Admin function: Delete a translation
+     */
+    @Transactional
+    @CacheEvict(value = {"translations", "translationsDto"}, allEntries = true)
+    public void deleteTranslation(String languageCode, String messageKey) {
+        Language language = languageRepository.findByIso6391(languageCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Language", "iso6391", languageCode));
+
+        // Verify translation exists before deleting
+        translationRepository.findByLanguageIdAndMessageKey(language.getId(), messageKey)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        String.format("Translation not found for key '%s' in language '%s'", messageKey, languageCode)
+                ));
+
+        translationRepository.deleteByLanguageIdAndMessageKey(language.getId(), messageKey);
+        log.info("Deleted translation: {} for language: {}", messageKey, languageCode);
     }
 }

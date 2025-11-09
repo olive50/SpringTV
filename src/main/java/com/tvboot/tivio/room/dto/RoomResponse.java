@@ -22,22 +22,13 @@ public class RoomResponse {
     private String roomNumber;
     private Room.RoomType roomType;
     private Integer floorNumber;
-    private String building;
-    private Integer capacity;
-    private BigDecimal pricePerNight;
-    private Room.RoomStatus status;
     private String description;
-    private boolean available;
+    private boolean occupied;
     private String fullRoomIdentifier;
-
 
     // ✅ FIXED: Use GuestResponseDto instead of Guest entity
     private List<GuestResponseDto> guests;
 
     // ✅ RECOMMENDED: Create TerminalDto to avoid similar issues
     private List<TerminalDto> terminals; // or keep as Terminal if no lazy loading issues
-
-    // Audit fields
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }

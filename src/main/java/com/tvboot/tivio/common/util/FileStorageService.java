@@ -154,6 +154,13 @@ public class FileStorageService {
                 extension);
     }
 
+    public  String generateLanguageFlagFilename(String iso6391, String originalFilename) {
+        String extension = getFileExtension(originalFilename);
+        return String.format("flag_%s%s",
+                iso6391.toLowerCase(),
+                extension);
+    }
+
     private  String sanitizeFilename(String filename) {
         return filename.replaceAll("[^a-zA-Z0-9._-]", "_");
     }

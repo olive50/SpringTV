@@ -1,8 +1,9 @@
 package com.tvboot.tivio.terminal;
 
 import com.tvboot.tivio.common.enumeration.DeviceType;
-import com.tvboot.tivio.common.enumeration.TerminalStatus;
+import com.tvboot.tivio.common.enumeration.LocationType;
 import com.tvboot.tivio.room.Room;
+import com.tvboot.tivio.wifi.AccessPoint;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -24,9 +25,7 @@ public class Terminal {
     private Long id;
 
     @Column(name = "terminal_code", unique = true, nullable = false, length = 50)
-    private String terminalCode;
-    @Column(name = "serial_number", length = 50)
-    private String serialNumber;
+    private String terminalCode; //duid for smasung tizen
 
     @Column(name = "ip_address", nullable = false, length = 15)
     private String ipAddress;
@@ -35,14 +34,17 @@ public class Terminal {
     private String macAddress;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "device_type", nullable = false, length = 20)
+    @Column(name = "device_type", length = 20)
     private DeviceType deviceType;
 
-    @Column(name = "brand", nullable = false, length = 50)
+    @Column(name = "brand", length = 50)
     private String brand;
 
-    @Column(name = "model", nullable = false, length = 50)
+    @Column(name = "model",  length = 50)
     private String model;
+
+    @Column(name = "app_version", length = 20)
+    private String appVersion;
 
     @Column(name = "platform", length = 20)
     private String platform;
@@ -50,27 +52,38 @@ public class Terminal {
     @Column(name = "firmware_version", length = 20)
     private String firmwareVersion;
 
+    @Column(name = "is_active", nullable = false)
+    private Boolean active = false;
 
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
-    private TerminalStatus status = TerminalStatus.INACTIVE;
+    @Column(name = "location_type", nullable = false, length = 20)
+    private LocationType locationType;
 
-    @Column(name = "location", nullable = false, length = 100)
-    private String location;
+    @Column(name = "location_identifier")
+    private String locationIdentifier; // Room number or area name
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "room_id")
-    private Room room;
+    @JoinColumn(name = "room_id", nullable = true)
+    private Room room; // Only filled if locationType == ROOM
 
     @Column(name = "last_seen", nullable = false)
     private LocalDateTime lastSeen = LocalDateTime.now();
+
     @Column(name = "uptime", precision = 5)
     private Double uptime; // percentage
 
     @Column(name = "is_online", nullable = false)
     private Boolean isOnline = false;
 
+    @Column(name = "soft_ap", nullable = false)
+    private Boolean softAp = true;
+
+    @Column(name = "comment")
+    private String comment;
+
+    @OneToOne(mappedBy = "terminal", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private AccessPoint accessPoint;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -79,8 +92,6 @@ public class Terminal {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-
 
 
 }

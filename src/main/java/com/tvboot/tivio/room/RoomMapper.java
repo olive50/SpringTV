@@ -20,11 +20,8 @@ public interface RoomMapper {
 
     void updateEntityFromRequest(RoomRequest request, @MappingTarget Room room);
 
-    @Mapping(target = "available", expression = "java(room.isAvailable())")
-    @Mapping(target = "fullRoomIdentifier", expression = "java(room.getFullRoomIdentifier())")
     RoomResponse roomToRoomResponse(Room room);
 
-    @Mapping(target = "available", expression = "java(room.isAvailable())")
-    @Mapping(target = "fullRoomIdentifier", expression = "java(room.getFullRoomIdentifier())")
+//    @Mapping(target = "fullRoomIdentifier", expression = "java(room.getFullRoomIdentifier())")
     RoomSummary roomToRoomSummary(Room room);
 }

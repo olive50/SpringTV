@@ -1,7 +1,7 @@
-package com.tvboot.tivio.epg;
+package com.tvboot.tivio.media.epg;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.tvboot.tivio.media.TvChannel;
+import com.tvboot.tivio.tvchannel.TvChannel;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;

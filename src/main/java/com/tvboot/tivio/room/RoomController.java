@@ -1,10 +1,7 @@
 package com.tvboot.tivio.room;
 
 import com.tvboot.tivio.common.dto.respone.TvBootHttpResponse;
-import com.tvboot.tivio.room.dto.RoomRequest;
-import com.tvboot.tivio.room.dto.RoomResponse;
-import com.tvboot.tivio.room.dto.RoomStatsDTO;
-import com.tvboot.tivio.room.dto.RoomSummary;
+import com.tvboot.tivio.room.dto.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,7 +15,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/rooms")
+@RequestMapping("/rooms")
 @RequiredArgsConstructor
 public class RoomController {
 
@@ -118,17 +115,7 @@ public class RoomController {
         return ResponseEntity.ok(httpResponse);
     }
 
-    @PatchMapping("/{id}/status")
-    public ResponseEntity<TvBootHttpResponse> updateRoomStatus(
-            @PathVariable Long id,
-            @RequestParam Room.RoomStatus status) {
-        RoomResponse response = roomService.updateRoomStatus(id, status);
-        TvBootHttpResponse httpResponse = TvBootHttpResponse.success()
-                .message("Room status updated successfully")
-                .build()
-                .addRoom(response);
-        return ResponseEntity.ok(httpResponse);
-    }
+
 
     @GetMapping("/search")
     public ResponseEntity<TvBootHttpResponse> searchRooms(@RequestParam String q) {
@@ -154,46 +141,6 @@ public class RoomController {
         return ResponseEntity.ok(httpResponse);
     }
 
-    @GetMapping("/building/{building}")
-    public ResponseEntity<TvBootHttpResponse> getRoomsByBuilding(@PathVariable String building) {
-        List<RoomSummary> rooms = roomService.getRoomsByBuilding(building);
-        TvBootHttpResponse httpResponse = TvBootHttpResponse.success()
-                .message("Rooms retrieved by building successfully")
-                .build()
-                .addData("rooms", rooms)
-                .addCount(rooms.size())
-                .addData("building", building);
-        return ResponseEntity.ok(httpResponse);
-    }
-
-    @GetMapping("/price-range")
-    public ResponseEntity<TvBootHttpResponse> getRoomsByPriceRange(
-            @RequestParam BigDecimal minPrice,
-            @RequestParam BigDecimal maxPrice) {
-        List<RoomSummary> rooms = roomService.getRoomsByPriceRange(minPrice, maxPrice);
-        TvBootHttpResponse httpResponse = TvBootHttpResponse.success()
-                .message("Rooms retrieved by price range successfully")
-                .build()
-                .addData("rooms", rooms)
-                .addCount(rooms.size())
-                .addData("priceRange", new Object() {
-                    public final BigDecimal min = minPrice;
-                    public final BigDecimal max = maxPrice;
-                });
-        return ResponseEntity.ok(httpResponse);
-    }
-
-    @GetMapping("/capacity/{guests}")
-    public ResponseEntity<TvBootHttpResponse> getRoomsAvailableForGuests(@PathVariable int guests) {
-        List<RoomSummary> rooms = roomService.getRoomsAvailableForGuests(guests);
-        TvBootHttpResponse httpResponse = TvBootHttpResponse.success()
-                .message("Rooms available for guests retrieved successfully")
-                .build()
-                .addData("rooms", rooms)
-                .addCount(rooms.size())
-                .addData("guestCapacity", guests);
-        return ResponseEntity.ok(httpResponse);
-    }
 
     @GetMapping("/count/available")
     public ResponseEntity<TvBootHttpResponse> getAvailableRoomsCount() {
@@ -205,26 +152,18 @@ public class RoomController {
         return ResponseEntity.ok(httpResponse);
     }
 
-    @PostMapping("/{roomId}/channel-package/{packageId}")
-    public ResponseEntity<TvBootHttpResponse> assignChannelPackage(
-            @PathVariable Long roomId,
-            @PathVariable Long packageId) {
-        RoomResponse response = roomService.assignChannelPackage(roomId, packageId);
-        TvBootHttpResponse httpResponse = TvBootHttpResponse.success()
-                .message("Channel package assigned to room successfully")
-                .build()
-                .addRoom(response)
-                .addData("packageId", packageId);
-        return ResponseEntity.ok(httpResponse);
+    // ✅ POST /rooms/{roomId}/guests  → check-in
+    @PostMapping("/{roomNumber}/checking")
+    public ResponseEntity<?> checkIn(@PathVariable String roomNumber, @RequestBody GuestRoomDto dto) {
+        var room = roomService.checkIn(roomNumber, dto);
+        return ResponseEntity.ok(room);
     }
 
-    @DeleteMapping("/{roomId}/channel-package")
-    public ResponseEntity<TvBootHttpResponse> removeChannelPackage(@PathVariable Long roomId) {
-        RoomResponse response = roomService.removeChannelPackage(roomId);
-        TvBootHttpResponse httpResponse = TvBootHttpResponse.success()
-                .message("Channel package removed from room successfully")
-                .build()
-                .addRoom(response);
-        return ResponseEntity.ok(httpResponse);
+    // ✅ PUT /rooms/{roomId}/guests  → check-out
+    @PutMapping("/{roomNumber}/checkout")
+    public ResponseEntity<?> checkOut(@PathVariable String roomNumber) {
+        var room = roomService.checkOut(roomNumber);
+        return ResponseEntity.ok(room);
     }
+
 }

@@ -29,16 +29,8 @@ public class RoomRequest {
     @PositiveOrZero(message = "Floor number cannot be negative")
     private Integer floorNumber;
 
-    private String building;
-
-    @Positive(message = "Max occupancy must be positive")
-    private Integer capacity;
-
-    @Positive(message = "Price must be positive")
-    private BigDecimal pricePerNight;
-
     @NotNull(message = "Room status is required")
-    private Room.RoomStatus status;
+    private boolean occupied = false;
 
     private String description;
 

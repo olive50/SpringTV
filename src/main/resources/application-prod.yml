@@ -12,9 +12,9 @@ spring:
   # ==========================================
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:tvboot_prod}?ApplicationName=tvboot-prod&stringtype=unspecified&sslmode=require
-    username: ${DB_USERNAME:prod_user}
-    password: ${DB_PASSWORD:prod_pass}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:tvdb}?ApplicationName=tvboot-prod&stringtype=unspecified&sslmode=require
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:root}
     hikari:
       pool-name: TivioHikariPoolProd
       maximum-pool-size: 30

@@ -1,9 +1,6 @@
 package com.tvboot.tivio.room;
 
-import com.tvboot.tivio.room.dto.RoomRequest;
-import com.tvboot.tivio.room.dto.RoomResponse;
-import com.tvboot.tivio.room.dto.RoomStatsDTO;
-import com.tvboot.tivio.room.dto.RoomSummary;
+import com.tvboot.tivio.room.dto.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -26,15 +23,9 @@ public interface RoomService {
 
     void deleteRoom(Long id);
 
-    RoomResponse updateRoomStatus(Long id, Room.RoomStatus status);
-
     List<RoomSummary> searchRooms(String searchTerm);
 
     List<RoomSummary> getRoomsByType(Room.RoomType roomType);
-
-    List<RoomSummary> getRoomsByBuilding(String building);
-
-    List<RoomSummary> getRoomsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice);
 
     List<RoomSummary> getRoomsAvailableForGuests(int numberOfGuests);
 
@@ -44,4 +35,10 @@ public interface RoomService {
 
     RoomResponse removeChannelPackage(Long roomId);
     RoomStatsDTO getRoomStatistics();
+
+    Object checkIn(String roomNumber, GuestRoomDto dto);
+
+    Object checkOut(String roomNumber);
+
+    List<RoomSummary> getRoomsByFloorNumber(Integer floorNumber);
 }

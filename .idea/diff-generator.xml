@@ -3,5 +3,8 @@
   <component name="DiffGenerationConfig">
     <option name="snapshotDb" value="false" />
     <option name="snapshotModelValue" value="Default" />
+    <option name="sourceDbValue" value="3b314ed6-a7fb-4963-93bc-61b8f829dc7d" />
+    <option name="sourceDiffType" value="DB" />
+    <option name="targetDbValue" value="3b314ed6-a7fb-4963-93bc-61b8f829dc7d" />
   </component>
 </project>

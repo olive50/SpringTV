@@ -3,10 +3,7 @@ package com.tvboot.tivio.room;
 
 import com.tvboot.tivio.common.exception.ResourceAlreadyExistsException;
 import com.tvboot.tivio.common.exception.ResourceNotFoundException;
-import com.tvboot.tivio.room.dto.RoomRequest;
-import com.tvboot.tivio.room.dto.RoomResponse;
-import com.tvboot.tivio.room.dto.RoomStatsDTO;
-import com.tvboot.tivio.room.dto.RoomSummary;
+import com.tvboot.tivio.room.dto.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -72,7 +69,7 @@ public class RoomServiceImpl implements RoomService {
     @Transactional(readOnly = true)
     public List<RoomSummary> getAvailableRooms() {
         log.debug("Fetching all available rooms");
-        return roomRepository.findByStatus(Room.RoomStatus.AVAILABLE)
+        return roomRepository.findAvailableRooms()
                 .stream()
                 .map(roomMapper::toSummary)
                 .collect(Collectors.toList());
@@ -110,19 +107,6 @@ public class RoomServiceImpl implements RoomService {
         log.info("Room deleted successfully with ID: {}", id);
     }
 
-    @Override
-    public RoomResponse updateRoomStatus(Long id, Room.RoomStatus status) {
-        log.info("Updating room status to {} for room ID: {}", status, id);
-
-        Room room = roomRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Room not found with ID: " + id));
-
-        room.setStatus(status);
-        Room updatedRoom = roomRepository.save(room);
-
-        log.info("Room status updated successfully for ID: {}", id);
-        return roomMapper.toResponse(updatedRoom);
-    }
 
     @Override
     @Transactional(readOnly = true)
@@ -146,29 +130,21 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RoomSummary> getRoomsByBuilding(String building) {
-        log.debug("Fetching rooms in building: {}", building);
-        return roomRepository.findByBuilding(building)
+    public List<RoomSummary> getRoomsByFloorNumber(Integer floorNumber) {
+        log.debug("Fetching rooms in building: {}", floorNumber);
+        return roomRepository.findByFloorNumber(floorNumber)
                 .stream()
                 .map(roomMapper::toSummary)
                 .collect(Collectors.toList());
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<RoomSummary> getRoomsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice) {
-        log.debug("Fetching rooms in price range: {} - {}", minPrice, maxPrice);
-        return roomRepository.findAvailableRoomsByPriceRange(minPrice, maxPrice)
-                .stream()
-                .map(roomMapper::toSummary)
-                .collect(Collectors.toList());
-    }
+
 
     @Override
     @Transactional(readOnly = true)
     public List<RoomSummary> getRoomsAvailableForGuests(int numberOfGuests) {
         log.debug("Fetching rooms available for {} guests", numberOfGuests);
-        return roomRepository.findAvailableRoomsForGuests(numberOfGuests)
+        return roomRepository.findAvailableRooms()
                 .stream()
                 .map(roomMapper::toSummary)
                 .collect(Collectors.toList());
@@ -208,35 +184,44 @@ public class RoomServiceImpl implements RoomService {
         int totalRooms = roomRepository.countAllRooms();
         int available = roomRepository.countAvailableRooms();
         int occupied = roomRepository.countOccupiedRooms();
-        int maintenance = roomRepository.countMaintenanceRooms();
-        Double occupancy = roomRepository.findAverageOccupancy();
-
-
-
-//        // Get category statistics
-//        Map<String, Long> categoryStats = new HashMap<>();
-//        List<Object[]> categoryResults = tvChannelRepository.countByCategory();
-//        for (Object[] result : categoryResults) {
-//            String categoryName = (String) result[0];
-//            Long count = (Long) result[1];
-//            categoryStats.put(categoryName, count);
-//        }
-
-        // Get language statistics
-//        Map<String, Long> languageStats = new HashMap<>();
-//        List<Object[]> languageResults = tvChannelRepository.countByLanguage();
-//        for (Object[] result : languageResults) {
-//            String languageName = (String) result[0];
-//            Long count = (Long) result[1];
-//            languageStats.put(languageName, count);
-//        }
-
         return RoomStatsDTO.builder()
                 .total(totalRooms)
                 .available(available)
-                .maintenance(maintenance)
                 .occupied(occupied)
-                .occupancy(occupancy)
                 .build();
+    }
+
+    // ✅ Check-in
+    public Room checkIn(String roomNumber, GuestRoomDto dto) {
+        Room room = roomRepository.findByRoomNumber(roomNumber)
+                .orElseThrow(() -> new IllegalArgumentException("Room not found"));
+
+        if (room.getOccupied()) {
+            throw new IllegalStateException("Room is already occupied");
+        }
+
+        RoomGuest guest = RoomGuest.builder()
+                .pmsGuestId(dto.getPmsGuestId())
+                .title(dto.getTitle())
+                .languageCode(dto.getLanguageCode())
+                .type(dto.getType())
+                .firstName(dto.getFirstName())
+                .lastName(dto.getLastName())
+                .build();
+
+        room.setOccupied(true);
+        room.setCurrentGuest(guest);
+        return roomRepository.save(room);
+    }
+
+    // ✅ Check-out
+    public Room checkOut(String roomNumber) {
+        Room room = roomRepository.findByRoomNumber(roomNumber)
+                .orElseThrow(() -> new IllegalArgumentException("Room not found"));
+
+        room.setOccupied(false);
+        room.setCurrentGuest(null);
+
+        return roomRepository.save(room);
     }
 }

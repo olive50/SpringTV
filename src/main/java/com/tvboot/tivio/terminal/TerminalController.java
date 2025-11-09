@@ -1,6 +1,11 @@
 package com.tvboot.tivio.terminal;
 
 import com.tvboot.tivio.common.dto.respone.TvBootHttpResponse;
+import com.tvboot.tivio.common.enumeration.LocationType;
+import com.tvboot.tivio.common.exception.ResourceNotFoundException;
+import com.tvboot.tivio.room.Room;
+import com.tvboot.tivio.room.RoomRepository;
+import com.tvboot.tivio.room.RoomService;
 import com.tvboot.tivio.terminal.dto.*;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
@@ -22,13 +27,38 @@ import java.util.stream.Collectors;
 
 // src/main/java/com/tvboot/iptv/controller/TerminalController.java
 @RestController
-@RequestMapping("/api/terminals")
+@RequestMapping("/terminals")
 @Validated
 @RequiredArgsConstructor
 @Slf4j
+@CrossOrigin(origins = "*")
 public class TerminalController {
 
     private final TerminalService terminalService;
+    private final RoomRepository roomRepository;
+    private final TerminalMapper terminalMapper;
+
+
+
+    @PostMapping("/{terminalId}/assign")
+    public ResponseEntity<?> assignTerminal(
+            @PathVariable Long terminalId,
+            @RequestBody AssignTerminalRequest request) {
+
+        if (request.getLocationType() == LocationType.ROOM) {
+            // Vérifier que la chambre existe
+            Room room = roomRepository.findByRoomNumber(request.getLocationIdentifier())
+                    .orElseThrow(() -> new ResourceNotFoundException("Room not found"));
+        }
+
+        terminalService.assignTerminalToLocation(
+                terminalId,
+                request.getLocationType(),
+                request.getLocationIdentifier()
+        );
+
+        return ResponseEntity.ok().build();
+    }
 
     @GetMapping("/list")
     public ResponseEntity<TvBootHttpResponse> getAllTerminals() {
@@ -319,31 +349,19 @@ public class TerminalController {
     }
 
     // Additional IPTV-specific endpoint
-    @PostMapping("/{id}/authorize")
-    public ResponseEntity<TvBootHttpResponse> authorizeDevice(@PathVariable Long id) {
+    @PostMapping("/{id}/activate")
+    public ResponseEntity<TvBootHttpResponse> activateTerminal(@PathVariable Long id) {
         log.info("Authorizing device with terminal ID: {}", id);
 
-        try {
-            TerminalDto terminal = terminalService.getTerminalById(id);
-
-            // In a real implementation, you would perform device authorization logic here
+        Terminal activatedTerminal = terminalService.activateTerminal(id);
 
             TvBootHttpResponse response = TvBootHttpResponse.success()
                     .message("Device authorized successfully")
                     .build()
-                    .addDevice(terminal);
+                    .addDevice(activatedTerminal);
 
             return ResponseEntity.ok(response);
-        } catch (EntityNotFoundException e) {
-            log.warn("Terminal not found for authorization with ID: {}", id);
-            return TvBootHttpResponse.deviceNotAuthorizedResponse(id.toString());
-        } catch (Exception e) {
-            log.error("Error authorizing device {}", id, e);
-            return TvBootHttpResponse.internalServerErrorResponse(
-                    "Failed to authorize device",
-                    e.getMessage()
-            );
-        }
+
     }
 
     // IPTV-specific endpoint for getting terminals by room

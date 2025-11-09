@@ -17,9 +17,5 @@ public class RoomSummary {
     private String roomNumber;
     private Room.RoomType roomType;
     private Integer floorNumber;
-    private String building;
-    private BigDecimal pricePerNight;
-    private Room.RoomStatus status;
-    private boolean available;
-    private String fullRoomIdentifier;
+    private boolean occupied ;
 }

@@ -1,6 +1,18 @@
 spring:
   application:
     name: TVBOOT-TIVIO
+  task:
+    scheduling:
+      pool:
+        size: 5 # Nombre de threads pour les tâches planifiées
+    execution:
+      pool:
+        core-size: 10
+        max-size: 20
+        queue-capacity: 100
+  threads:
+    virtual:
+      enabled: true
 
   profiles:
     active: dev
@@ -9,7 +21,7 @@ spring:
   # ==========================================
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:tvboot_db}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:tvdb}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:root}
     hikari:
@@ -105,7 +117,7 @@ spring:
 # SERVER CONFIGURATION
 # ==========================================
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${SERVER_PORT:8888}
   error:
     include-message: always
     include-binding-errors: always
@@ -113,7 +125,9 @@ server:
     include-exception: true
   compression:
     enabled: false
-  address: ${SERVER_IP:localhost}
+  address: ${SERVER_IP:0.0.0.0}
+  servlet:
+    context-path: /api/v1
 
 # ==========================================
 # ACTUATOR CONFIGURATION
@@ -154,18 +168,104 @@ logging:
 # APP CUSTOM CONFIGURATION
 # ==========================================
 app:
-  jwtSecret: ${JWT_SECRET}
-  jwtExpirationMs: 86400000
+  base-url: http://localhost:8888
+  jwtSecret: ${JWT_SECRET:OW1eLwtW8gq0dua4bgE2X75GTXl9J2Q2RoQ3YB3rLwk=}
+  jwtExpirationMs: ${JWT_Expiration_Ms:86400000}
+  refresh:
+    secret: ${JWT_REFRESH_SECRET:a5lHAKHxjNIJEkhTQslRQs7Aq2vjkSagZqrIKb99gjY=}
+  terminal:
+    expiration: 7776000  # 90 jours
+    refresh-expiration: 31536000  # 365 jours
+
+
+  # ==========================================
+  # FILE STORAGE CONFIGURATION - NEW UNIFIED STRUCTURE
+  # ==========================================
+  file:
+    # Base directory pour tous les fichiers
+    base-dir: ${FILE_STORAGE_PATH:uploads}
+
+    # Configuration spécifique par type
+    image:
+      allowed-extensions: jpg,jpeg,png,gif,bmp,webp,svg,ico
+      max-size: ${IMAGE_MAX_SIZE:10MB}
+      cache-duration: 86400  # 24h en secondes
+
+    video:
+      allowed-extensions: mp4,m3u8,ts,mkv,avi,mov,webm
+      max-size: ${VIDEO_MAX_SIZE:500MB}
+      cache-duration: 0  # Pas de cache pour le streaming
+      enable-range-requests: true
+
+    document:
+      allowed-extensions: pdf,doc,docx,txt,csv,m3u,xml,json
+      max-size: ${DOC_MAX_SIZE:20MB}
+      cache-duration: 3600  # 1h en secondes
+
+  # Configuration UPLOAD existante (compatible avec votre code)
   upload:
     logos:
-      path: uploads/logos/channels/
+      path: uploads/image/logos/  # Mis à jour pour correspondre à la nouvelle structure
       max-size: 5242880
+
+  # Configuration CDN existante
   cdn:
     enabled: false
     base-url: http://localhost:8080
-    logos-path:  ${LOGO_UPLOAD_PATH:/uploads/logos/channels}
+    logos-path: ${LOGO_UPLOAD_PATH:/uploads/image/logos}  # Mis à jour
 
+  # Configuration CORS pour le FileController
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:4200,http://localhost:3000}
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: "*"
+    exposed-headers: Content-Disposition,X-Total-Count
+    allow-credentials: true
+    max-age: 3600
 
+  # Configuration STREAM existante
+  stream:
+    health-check:
+      enabled: false
+      fast-check:
+        enabled: false
+      interval-minutes: 5
+      timeout-seconds: 5
+      max-concurrent-checks: 10
+
+  # ==========================================
+  # IPTV SPECIFIC CONFIGURATION - NEW
+  # ==========================================
+  iptv:
+    # Configuration pour le streaming HLS/DASH
+    streaming:
+      hls:
+        segment-duration: 10  # Durée des segments en secondes
+        playlist-length: 5   # Nombre de segments dans la playlist
+        enable-cors: true
+      buffer-size: 65536  # Taille du buffer pour le streaming
+
+    # Configuration EPG (Electronic Program Guide)
+    epg:
+      enabled: true
+      auto-update: true
+      update-interval: 24  # Heures
+      directory: ${app.file.base-dir}/document/epg
+      retention-days: 7  # Garde l'EPG pour 7 jours
+
+    # Configuration des playlists M3U
+    playlist:
+      directory: ${app.file.base-dir}/document/playlists
+      auto-refresh: true
+      refresh-interval: 60  # Minutes
+      max-channels: 1000
+
+    # Configuration des enregistrements
+    recording:
+      enabled: true
+      directory: ${app.file.base-dir}/video/recordings
+      max-duration: 240  # Minutes max par enregistrement
+      retention-days: 30  # Garde les enregistrements 30 jours
 # ==========================================
 # SWAGGER/OPENAPI CONFIGURATION
 # ==========================================
@@ -176,4 +276,4 @@ springdoc:
   swagger-ui:
     enabled: true
     path: /swagger-ui.html
-  packages-to-scan: com.tvboot.tivio.controller
+  packages-to-scan: com.tvboot.tivio

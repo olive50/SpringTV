@@ -1,7 +1,6 @@
 package com.tvboot.tivio.room;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.tvboot.tivio.guest.Guest;
 import com.tvboot.tivio.terminal.Terminal;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -24,7 +23,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@ToString(exclude = {"terminals", "guests", "channelPackage"})
+@ToString(exclude = {"terminals"})
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "rooms", indexes = {
         @Index(name = "idx_room_status", columnList = "status"),
@@ -51,33 +50,27 @@ public class Room {
     @Column(name = "floor_number")
     private Integer floorNumber;
 
-    @Column(name = "building")
-    private String building;
-
-    @Positive(message = "Max occupancy must be positive")
-    @Column(name = "capacity")
-    private Integer capacity;
-
-    @Positive(message = "Price must be positive")
-    @Column(name = "price_per_night", precision = 10, scale = 2)
-    private BigDecimal pricePerNight;
-
-    @NotNull(message = "Room status is required")
-    @Column(name = "status", nullable = false)
-    @Enumerated(EnumType.STRING)
-    private RoomStatus status;
-
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
 
-    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore
+    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Terminal> terminals = new ArrayList<>();
 
-    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore
-    private List<Guest> guests = new ArrayList<>();
+
+    private Boolean occupied;
+
+    // Embedded guest information (not a separate entity)
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "pmsGuestId", column = @Column(name = "guest_pms_id")),
+            @AttributeOverride(name = "title", column = @Column(name = "guest_title")),
+            @AttributeOverride(name = "languageCode", column = @Column(name = "guest_language")),
+            @AttributeOverride(name = "type", column = @Column(name = "guest_type")),
+            @AttributeOverride(name = "firstName", column = @Column(name = "guest_first_name")),
+            @AttributeOverride(name = "lastName", column = @Column(name = "guest_last_name"))
+    })
+    private RoomGuest currentGuest;
 
 
 
@@ -89,7 +82,11 @@ public class Room {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Relationship management methods
+
+    public enum RoomType {
+        TWIN,  DOUBLE_DELUXE,JUNIOR_SUITE,DELUXE_SUITE, SENIOR_SUITE,STANDARD,PRESIDENTIAL_SUITE, JUNIOR_DELUXE,SENIOR_DELUXE
+    }
+
     public void addTerminal(Terminal terminal) {
         terminals.add(terminal);
         terminal.setRoom(this);
@@ -100,58 +97,4 @@ public class Room {
         terminal.setRoom(null);
     }
 
-    public void addGuest(Guest guest) {
-        guests.add(guest);
-        guest.setRoom(this);
-    }
-
-    public void removeGuest(Guest guest) {
-        guests.remove(guest);
-        guest.setRoom(null);
-    }
-
-    // Business logic methods
-    public boolean isAvailable() {
-        return status == RoomStatus.AVAILABLE;
-    }
-
-    public boolean canAccommodate(int numberOfGuests) {
-        return capacity != null && numberOfGuests <= capacity;
-    }
-
-    public boolean isUnderMaintenance() {
-        return status == RoomStatus.MAINTENANCE || status == RoomStatus.OUT_OF_ORDER;
-    }
-
-    public boolean isOccupied() {
-        return status == RoomStatus.OCCUPIED;
-    }
-
-    public boolean needsCleaning() {
-        return status == RoomStatus.CLEANING;
-    }
-
-    public String getFullRoomIdentifier() {
-        return (building != null ? building + "-" : "") + roomNumber +
-                (floorNumber != null ? " (Floor " + floorNumber + ")" : "");
-    }
-
-    public enum RoomType {
-        TWIN,  DOUBLE_DELUXE,JUNIOR_SUITE,DELUXE_SUITE, SENIOR_SUITE,STANDARD,PRESIDENTIAL_SUITE, JUNIOR_DELUXE,SENIOR_DELUXE
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-    public enum RoomStatus {
-        AVAILABLE, OCCUPIED, MAINTENANCE, OUT_OF_ORDER, CLEANING
-    }
 }

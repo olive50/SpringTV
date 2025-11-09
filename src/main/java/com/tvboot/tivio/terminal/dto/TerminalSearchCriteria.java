@@ -1,7 +1,6 @@
 package com.tvboot.tivio.terminal.dto;
 
 import com.tvboot.tivio.common.enumeration.DeviceType;
-import com.tvboot.tivio.common.enumeration.TerminalStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,12 +10,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class TerminalSearchCriteria {
     private String search;
-    private TerminalStatus status;
+    private Boolean active;
     private DeviceType deviceType;
-    private String location;
+    private String locationId;
 
-
-    private Long roomId;
     private String terminalNumber;
 
     private Integer floorNumber;

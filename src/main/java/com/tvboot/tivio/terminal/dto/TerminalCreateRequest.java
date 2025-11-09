@@ -36,10 +36,14 @@ public class TerminalCreateRequest {
             message = "Invalid IP address format")
     private String ipAddress;
 
-    @NotBlank(message = "Location is required")
-    private String location;
+    @NotBlank(message = "LocationType is required")
+    private String locationType;
 
-    private Long roomId;
+    @NotBlank(message = "Location identifier is required")
+    private String locationIdentifier;
+    private Boolean active=false;
+    private String platform;
+    private String appVersion;
     private String firmwareVersion;
-    private String serialNumber;
+    private String comment;
 }

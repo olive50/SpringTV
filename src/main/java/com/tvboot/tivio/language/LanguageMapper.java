@@ -1,6 +1,7 @@
 // LanguageMapper.java - Fixed version
 package com.tvboot.tivio.language;
 
+import com.tvboot.tivio.common.util.FileUrlBuilder;
 import com.tvboot.tivio.language.dto.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.mapstruct.*;
@@ -10,22 +11,24 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @Mapper(
-        componentModel = "spring",
+        componentModel = "spring",uses = FileUrlBuilder.class,
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
         unmappedTargetPolicy = ReportingPolicy.IGNORE
 )
 public interface LanguageMapper {
 
     // Remove @Value annotations - they cause issues with MapStruct
-     static final String BASE_URL = "http://localhost:8080";
-     static final String FLAGS_PATH = "/uploads/flags";
+
+   String FLAGS_DIR = "/files/image/image/flags/";
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     public abstract Language toEntity(LanguageCreateDTO dto);
 
-    @Mapping(target = "flagUrl", expression = "java(generateFlagUrlFromEntity(entity))")
+ @Mapping(target = "flagUrl", expression = "java(generateFlagUrlFromEntity(entity))")
+
+//    @Mapping(target = "flagUrl", source = "flagPath", qualifiedByName = "imageUrlBuilder")
     public abstract LanguageResponseDTO toDTO(Language entity);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -33,15 +36,8 @@ public interface LanguageMapper {
     @Mapping(target = "iso6391", ignore = true) // ISO code should not be updated
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    public abstract void updateEntityFromDTO(LanguageUpdateDTO dto, @MappingTarget Language entity);
-/*
-    @Named("generateFlagUrl")
-    protected String generateFlagUrl(String flagPath) {
-        if (flagPath != null && !flagPath.isEmpty()) {
-            return BASE_URL + FLAGS_PATH + "/" + flagPath;
-        }
-        return null;
-    }*/
+    void updateEntityFromDTO(LanguageUpdateDTO dto, @MappingTarget Language entity);
+
     /**
      * Génère l'URL complète du drapeau à partir de l'entité Language
      * Cette méthode prend en compte le contexte de la requête pour générer une URL dynamique
@@ -59,7 +55,7 @@ public interface LanguageMapper {
         try {
             // Méthode 1: Utiliser ServletUriComponentsBuilder (recommandée dans un contexte web)
             return ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/api/files/image/")
+                    .path(FLAGS_DIR)
                     .path(flagPath)
                     .toUriString();
 
@@ -90,7 +86,7 @@ public interface LanguageMapper {
                         baseUrl.append(contextPath);
                     }
 
-                    return baseUrl.append("/api/files/image/")
+                    return baseUrl.append("/files/image/")
                             .append(flagPath)
                             .toString();
                 }
@@ -101,7 +97,7 @@ public interface LanguageMapper {
             }
 
             // Méthode 3: Dernier fallback - URL relative
-            return "/api/files/image/" + flagPath;
+            return FLAGS_DIR + flagPath;
         }
     }
 

@@ -1,6 +1,7 @@
 package com.tvboot.tivio.auth;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.tvboot.tivio.common.enumeration.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -102,7 +103,7 @@ public class User implements UserDetails {
         return isActive;
     }
 
-    public enum Role {
-        ADMIN, MANAGER, RECEPTIONIST, TECHNICIAN,HOUSEKEEPER,TERMINAL,GUEST
-    }
+//    public enum Role {
+//        ADMIN, MANAGER, RECEPTIONIST, TECHNICIAN,HOUSEKEEPER,TERMINAL,GUEST
+//    }
 }

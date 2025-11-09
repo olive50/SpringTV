@@ -3,6 +3,7 @@ package com.tvboot.tivio.common.exception;
 import com.tvboot.tivio.auth.dto.MessageResponse;
 import io.jsonwebtoken.ExpiredJwtException;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.exception.SQLGrammarException;
 import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -23,9 +24,12 @@ import jakarta.validation.ConstraintViolationException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import static org.springframework.validation.BindingResultUtils.getBindingResult;
 
 @ControllerAdvice
 @Slf4j
@@ -111,6 +115,53 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(errorResponse);
     }
 
+    @ExceptionHandler(SQLGrammarException.class)
+    public ResponseEntity<ErrorResponse> handleSQLGrammarException(SQLGrammarException ex, HttpServletRequest request) {
+        String message = "Database query error: invalid column or type mismatch";
+
+        var cause = ex.getMessage();
+        String traceId = generateTraceId();
+        MDC.put("traceId", traceId);
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now().toString())
+                .error("Database query")
+                .message(message)
+                .errorCode("query_error")
+                .path(request.getRequestURI())
+                .traceId(traceId)
+                .data(cause)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+
+    }
+    /**
+     * Handles TerminalNotActivatedException and maps it to HTTP 403 Forbidden.
+     * This is an authorization/licensing issue.
+     */
+    @ExceptionHandler(TerminalNotActivatedException.class)
+    public ResponseEntity<ErrorResponse> handleTerminalNotActivatedException(
+            TerminalNotActivatedException ex,
+            HttpServletRequest request) {
+
+        // Define the appropriate status code and message
+        HttpStatus status = HttpStatus.FORBIDDEN; // 403 Forbidden is a good fit for licensing/activation issues
+
+        // Build the ErrorResponse DTO using the provided structure
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now().toString())
+                .status(status.value())
+                .error(status.getReasonPhrase())
+                .message("The terminal is not activated. Operation is forbidden. Please check your activation status.")
+                .errorCode("TIVIO-001") // Custom application error code
+                .path(request.getRequestURI())
+                // traceId can be added here if you use a tracing framework like Sleuth/Micrometer
+                .build();
+
+        // Return the structured response entity
+        return new ResponseEntity<>(errorResponse, status);
+    }
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
             DataIntegrityViolationException ex, HttpServletRequest request) {
@@ -127,6 +178,9 @@ public class GlobalExceptionHandler {
             message = "Cannot delete - resource is referenced by other entities";
         }
 
+        var cause =  ex.getMessage();
+
+
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now().toString())
                 .status(HttpStatus.CONFLICT.value())
@@ -135,6 +189,7 @@ public class GlobalExceptionHandler {
                 .errorCode("DATA_INTEGRITY_ERROR")
                 .path(request.getRequestURI())
                 .traceId(traceId)
+                .data(cause)
                 .build();
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
@@ -162,6 +217,30 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
     }
+    // AJOUTEZ CETTE MÉTHODE POUR GÉRER IllegalArgumentException
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(
+            IllegalArgumentException ex, HttpServletRequest request) {
+
+        String traceId = generateTraceId();
+        MDC.put("traceId", traceId);
+
+        log.warn("IllegalArgumentException occurred: {} | TraceId: {}", ex.getMessage(), traceId);
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now().toString())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("Validation Error")
+                .message(ex.getMessage()) // ← Affiche le vrai message d'erreur
+                .errorCode("VALIDATION_ERROR")
+                .path(request.getRequestURI())
+                .traceId(traceId)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(
@@ -286,6 +365,30 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.UNAUTHORIZED.value())
                 .error("Authentication Failed")
                 .message("Authentication error")   // 👈 Only for other AuthenticationException
+                .errorCode("AUTHENTICATION_ERROR")
+                .path(request.getRequestURI())
+                .traceId(traceId)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
+    }
+
+
+
+    @ExceptionHandler(UnauthorizedTerminalException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedTerminalException(
+            UnauthorizedTerminalException ex, HttpServletRequest request) {
+
+        String traceId = generateTraceId();
+        MDC.put("traceId", traceId);
+
+        log.warn("Authentication failed: {} | TraceId: {}", ex.getMessage(), traceId);
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now().toString())
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .error("Authentication Failed")
+                .message("Unauthorized TerminalException")   // 👈 Only for other AuthenticationException
                 .errorCode("AUTHENTICATION_ERROR")
                 .path(request.getRequestURI())
                 .traceId(traceId)

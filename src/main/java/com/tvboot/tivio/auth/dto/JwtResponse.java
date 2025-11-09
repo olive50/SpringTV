@@ -1,6 +1,7 @@
 package com.tvboot.tivio.auth.dto;
 
 import com.tvboot.tivio.auth.User;
+import com.tvboot.tivio.common.enumeration.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,6 +18,6 @@ public class JwtResponse {
     private String email;
     private String firstName;
     private String lastName;
-    private User.Role role;
+    private Role role;
     private boolean isActive;
 }
